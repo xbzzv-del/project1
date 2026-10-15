@@ -1,0 +1,52 @@
+# See https://dart.dev/tools/pub/pubspec#file_inclusion for more information.
+
+### Dart ###
+.dart_tool/
+
+### Flutter ###
+*.hotreload
+*.hotrestart
+.build/
+dart_plugin_registrant.dart
+flutter_assets/
+flutter_drive/
+flutter_gallery_assets/
+flutter_plugins/
+generated/
+generated_plugin_registrant.dart
+packages/
+
+# Android studio
+.idea/
+android/.idea/
+android/app/.idea/
+android/gradle/.idea/
+
+### Android ###
+android/app/debug.keystore
+android/app/google-services.json
+android/app/src/main/res/drawable/launch_background.xml
+android/app/src/main/res/drawable-v21/launch_background.xml
+android/app/src/debug/
+android/app/src/generated/
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+android/build/
+android/captures/
+android/gradle/.gradle/
+android/gradle/gradle-wrapper.properties
+android/local.properties
+android/.DS_Store
+
+### iOS ###
+ios/.DS_Store
+ios/.generated/
+ios/Flutter/
+ios/Pods/
+ios/Runner/
+ios/ServiceDefinitions.json
+ios/Frameworks/
+
+### Linux ###
+linux/.DS_Store
+linux/build/
+linux/.generated/
