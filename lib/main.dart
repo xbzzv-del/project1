@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const DrawingApp());
@@ -61,78 +62,18 @@ class _MainWindowState extends State<MainWindow> {
     });
   }
 
+  void _quitApp() {
+    SystemNavigator.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Drawing App'),
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'clear':
-                  _clearCanvas();
-                  break;
-                case 'color_black':
-                  _changeColor(Colors.black);
-                  break;
-                case 'color_red':
-                  _changeColor(Colors.red);
-                  break;
-                case 'color_blue':
-                  _changeColor(Colors.blue);
-                  break;
-                case 'color_green':
-                  _changeColor(Colors.green);
-                  break;
-                case 'stroke_thin':
-                  _changeStrokeWidth(2.0);
-                  break;
-                case 'stroke_medium':
-                  _changeStrokeWidth(5.0);
-                  break;
-                case 'stroke_thick':
-                  _changeStrokeWidth(10.0);
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'clear',
-                child: Text('Clear Canvas'),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'color_black',
-                child: Text('Black'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'color_red',
-                child: Text('Red'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'color_blue',
-                child: Text('Blue'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'color_green',
-                child: Text('Green'),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'stroke_thin',
-                child: Text('Thin (2px)'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'stroke_medium',
-                child: Text('Medium (5px)'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'stroke_thick',
-                child: Text('Thick (10px)'),
-              ),
-            ],
-          ),
+          _buildFileMenu(),
+          _buildOptionsMenu(),
         ],
       ),
       body: Column(
@@ -202,6 +143,117 @@ class _MainWindowState extends State<MainWindow> {
       ),
     );
   }
+
+  Widget _buildFileMenu() {
+    return PopupMenuButton<String>(
+      tooltip: 'File',
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'open',
+          child: Text('Open'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'save',
+          child: Text('Save'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'save_as',
+          child: Text('Save as...'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'quit',
+          child: Text('Quit'),
+        ),
+      ],
+      onSelected: (String value) {
+        switch (value) {
+          case 'open':
+            _updateStatus('Open clicked');
+            break;
+          case 'save':
+            _updateStatus('Save clicked');
+            break;
+          case 'save_as':
+            _updateStatus('Save as... clicked');
+            break;
+          case 'quit':
+            _quitApp();
+            break;
+        }
+      },
+    );
+  }
+
+  Widget _buildOptionsMenu() {
+    return PopupMenuButton<String>(
+      tooltip: 'Options',
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'clear',
+          child: Text('Clear Canvas'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'color_black',
+          child: Text('Black'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'color_red',
+          child: Text('Red'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'color_blue',
+          child: Text('Blue'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'color_green',
+          child: Text('Green'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'stroke_thin',
+          child: Text('Thin (2px)'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'stroke_medium',
+          child: Text('Medium (5px)'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'stroke_thick',
+          child: Text('Thick (10px)'),
+        ),
+      ],
+      onSelected: (String value) {
+        switch (value) {
+          case 'clear':
+            _clearCanvas();
+            break;
+          case 'color_black':
+            _changeColor(Colors.black);
+            break;
+          case 'color_red':
+            _changeColor(Colors.red);
+            break;
+          case 'color_blue':
+            _changeColor(Colors.blue);
+            break;
+          case 'color_green':
+            _changeColor(Colors.green);
+            break;
+          case 'stroke_thin':
+            _changeStrokeWidth(2.0);
+            break;
+          case 'stroke_medium':
+            _changeStrokeWidth(5.0);
+            break;
+          case 'stroke_thick':
+            _changeStrokeWidth(10.0);
+            break;
+        }
+      },
+    );
+  }
 }
 
 class DrawingPainter extends CustomPainter {
@@ -236,4 +288,3 @@ class DrawingPainter extends CustomPainter {
       oldDelegate.color != color ||
       oldDelegate.strokeWidth != strokeWidth;
 }
-
