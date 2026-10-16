@@ -66,6 +66,128 @@ class _MainWindowState extends State<MainWindow> {
     SystemNavigator.pop();
   }
 
+  void _showOptionsMenu(BuildContext context, Offset position) {
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox button = context.findRenderObject() as RenderBox;
+    final Offset offset = button.localToGlobal(position, ancestor: overlay);
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        offset.dx,
+        offset.dy,
+        overlay.size.width - offset.dx,
+        overlay.size.height - offset.dy,
+      ),
+      items: <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'clear',
+          child: Text('Clear Canvas'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'color_black',
+          child: Text('Black'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'color_red',
+          child: Text('Red'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'color_blue',
+          child: Text('Blue'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'color_green',
+          child: Text('Green'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'stroke_thin',
+          child: Text('Thin (2px)'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'stroke_medium',
+          child: Text('Medium (5px)'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'stroke_thick',
+          child: Text('Thick (10px)'),
+        ),
+      ],
+    ).then((String? value) {
+      if (value != null) {
+        _handleOptionsMenuSelected(value);
+      }
+    });
+  }
+
+  void _handleOptionsMenuSelected(String value) {
+    switch (value) {
+      case 'clear':
+        _clearCanvas();
+        break;
+      case 'color_black':
+        _changeColor(Colors.black);
+        break;
+      case 'color_red':
+        _changeColor(Colors.red);
+        break;
+      case 'color_blue':
+        _changeColor(Colors.blue);
+        break;
+      case 'color_green':
+        _changeColor(Colors.green);
+        break;
+      case 'stroke_thin':
+        _changeStrokeWidth(2.0);
+        break;
+      case 'stroke_medium':
+        _changeStrokeWidth(5.0);
+        break;
+      case 'stroke_thick':
+        _changeStrokeWidth(10.0);
+        break;
+    }
+  }
+
+  Widget _buildCanvas() {
+    return MouseRegion(
+      cursor: SystemMouseCursors.basic,
+      child: GestureDetector(
+        onPanStart: (DragStartDetails details) {
+          setState(() {
+            _points.add(details.localPosition);
+            _updateStatus('Drawing...');
+          });
+        },
+        onPanUpdate: (DragUpdateDetails details) {
+          setState(() {
+            _points.add(details.localPosition);
+          });
+        },
+        onPanEnd: (DragEndDetails details) {
+          _points.add(null);
+          _updateStatus('${_points.where((p) => p != null).length} points drawn');
+        },
+        onSecondaryTapDown: (TapDownDetails details) {
+          _showOptionsMenu(context, details.globalPosition);
+        },
+        child: Container(
+          color: Colors.white,
+          child: CustomPaint(
+            painter: DrawingPainter(
+              points: _points,
+              color: _currentColor,
+              strokeWidth: _strokeWidth,
+            ),
+            size: Size.infinite,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,40 +195,12 @@ class _MainWindowState extends State<MainWindow> {
         title: const Text('Drawing App'),
         actions: [
           _buildFileMenu(),
-          _buildOptionsMenu(),
         ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: GestureDetector(
-              onPanStart: (DragStartDetails details) {
-                setState(() {
-                  _points.add(details.localPosition);
-                  _updateStatus('Drawing...');
-                });
-              },
-              onPanUpdate: (DragUpdateDetails details) {
-                setState(() {
-                  _points.add(details.localPosition);
-                });
-              },
-              onPanEnd: (DragEndDetails details) {
-                _points.add(null);
-                _updateStatus('${_points.where((p) => p != null).length} points drawn');
-              },
-              child: Container(
-                color: Colors.white,
-                child: CustomPaint(
-                  painter: DrawingPainter(
-                    points: _points,
-                    color: _currentColor,
-                    strokeWidth: _strokeWidth,
-                  ),
-                  size: Size.infinite,
-                ),
-              ),
-            ),
+            child: _buildCanvas(),
           ),
           Container(
             color: Theme.of(context).colorScheme.surfaceVariant,
@@ -179,76 +273,6 @@ class _MainWindowState extends State<MainWindow> {
             break;
           case 'quit':
             _quitApp();
-            break;
-        }
-      },
-    );
-  }
-
-  Widget _buildOptionsMenu() {
-    return PopupMenuButton<String>(
-      tooltip: 'Options',
-      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-        const PopupMenuItem<String>(
-          value: 'clear',
-          child: Text('Clear Canvas'),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem<String>(
-          value: 'color_black',
-          child: Text('Black'),
-        ),
-        const PopupMenuItem<String>(
-          value: 'color_red',
-          child: Text('Red'),
-        ),
-        const PopupMenuItem<String>(
-          value: 'color_blue',
-          child: Text('Blue'),
-        ),
-        const PopupMenuItem<String>(
-          value: 'color_green',
-          child: Text('Green'),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem<String>(
-          value: 'stroke_thin',
-          child: Text('Thin (2px)'),
-        ),
-        const PopupMenuItem<String>(
-          value: 'stroke_medium',
-          child: Text('Medium (5px)'),
-        ),
-        const PopupMenuItem<String>(
-          value: 'stroke_thick',
-          child: Text('Thick (10px)'),
-        ),
-      ],
-      onSelected: (String value) {
-        switch (value) {
-          case 'clear':
-            _clearCanvas();
-            break;
-          case 'color_black':
-            _changeColor(Colors.black);
-            break;
-          case 'color_red':
-            _changeColor(Colors.red);
-            break;
-          case 'color_blue':
-            _changeColor(Colors.blue);
-            break;
-          case 'color_green':
-            _changeColor(Colors.green);
-            break;
-          case 'stroke_thin':
-            _changeStrokeWidth(2.0);
-            break;
-          case 'stroke_medium':
-            _changeStrokeWidth(5.0);
-            break;
-          case 'stroke_thick':
-            _changeStrokeWidth(10.0);
             break;
         }
       },
