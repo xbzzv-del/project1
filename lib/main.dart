@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 
 void main() {
   runApp(const DrawingApp());
@@ -34,6 +37,7 @@ class _MainWindowState extends State<MainWindow> {
   String _statusMessage = 'Ready';
   Color _currentColor = Colors.black;
   double _strokeWidth = 3.0;
+  String? _currentFilePath;
 
   void _updateStatus(String message) {
     setState(() {
@@ -64,6 +68,104 @@ class _MainWindowState extends State<MainWindow> {
 
   void _quitApp() {
     SystemNavigator.pop();
+  }
+
+  Map<String, dynamic> _pointsToJson() {
+    final List<Map<String, dynamic>?> pointsList = [];
+    for (final point in _points) {
+      if (point != null) {
+        pointsList.add({
+          'x': point.dx,
+          'y': point.dy,
+        });
+      } else {
+        pointsList.add(null);
+      }
+    }
+    return {
+      'Points': pointsList,
+      'color': _currentColor.value.toRadixString(16),
+      'strokeWidth': _strokeWidth,
+    };
+  }
+
+  void _pointsFromJson(Map<String, dynamic> json) {
+    setState(() {
+      _points.clear();
+      final List<dynamic> pointsList = json['Points'] as List<dynamic>? ?? [];
+      for (final item in pointsList) {
+        if (item == null) {
+          _points.add(null);
+        } else {
+          _points.add(Offset(
+            (item['x'] as num).toDouble(),
+            (item['y'] as num).toDouble(),
+          ));
+        }
+      }
+      if (json.containsKey('color')) {
+        _currentColor = Color(int.parse(json['color'] as String, radix: 16));
+      }
+      if (json.containsKey('strokeWidth')) {
+        _strokeWidth = (json['strokeWidth'] as num).toDouble();
+      }
+      _updateStatus('Loaded ${_points.where((p) => p != null).length} points');
+    });
+  }
+
+  Future<void> _saveAs() async {
+    try {
+      final String? path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Drawing',
+        fileName: 'drawing.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (path != null && path.isNotEmpty) {
+        await _saveToFile(path);
+        _currentFilePath = path;
+        _updateStatus('Saved to $path');
+      }
+    } catch (e) {
+      _updateStatus('Error saving file: $e');
+    }
+  }
+
+  Future<void> _save() async {
+    if (_currentFilePath != null && _currentFilePath!.isNotEmpty) {
+      await _saveToFile(_currentFilePath!);
+      _updateStatus('Saved to $_currentFilePath');
+    } else {
+      await _saveAs();
+    }
+  }
+
+  Future<void> _saveToFile(String path) async {
+    final json = _pointsToJson();
+    final file = File(path);
+    await file.writeAsString(jsonEncode(json));
+  }
+
+  Future<void> _open() async {
+    try {
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        dialogTitle: 'Open Drawing',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = File(result.files.first.path!);
+        final contents = await file.readAsString();
+        final json = jsonDecode(contents) as Map<String, dynamic>;
+        _pointsFromJson(json);
+        _currentFilePath = result.files.first.path;
+        _updateStatus('Opened $_currentFilePath');
+      }
+    } catch (e) {
+      _updateStatus('Error opening file: $e');
+    }
   }
 
   void _showOptionsMenu(BuildContext context, Offset position) {
@@ -263,13 +365,13 @@ class _MainWindowState extends State<MainWindow> {
       onSelected: (String value) {
         switch (value) {
           case 'open':
-            _updateStatus('Open clicked');
+            _open();
             break;
           case 'save':
-            _updateStatus('Save clicked');
+            _save();
             break;
           case 'save_as':
-            _updateStatus('Save as... clicked');
+            _saveAs();
             break;
           case 'quit':
             _quitApp();
