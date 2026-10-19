@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'models/data_card.dart';
+import 'models/layout_settings.dart';
 import 'widgets/project_settings_dialog.dart';
 
 void main() {
@@ -41,6 +42,7 @@ class _MainWindowState extends State<MainWindow> {
   double _strokeWidth = 3.0;
   String? _currentFilePath;
   List<DataCard> _dataCardTypes = [];
+  LayoutSettings _layoutSettings = LayoutSettings();
 
   void _updateStatus(String message) {
     setState(() {
@@ -79,9 +81,15 @@ class _MainWindowState extends State<MainWindow> {
       builder: (BuildContext context) {
         return ProjectSettingsDialog(
           dataCardTypes: List.from(_dataCardTypes),
+          layoutSettings: _layoutSettings,
           onDataCardTypesChanged: (List<DataCard> newDataCardTypes) {
             setState(() {
               _dataCardTypes = List.from(newDataCardTypes);
+            });
+          },
+          onLayoutSettingsChanged: (LayoutSettings newLayoutSettings) {
+            setState(() {
+              _layoutSettings = newLayoutSettings;
             });
           },
         );
@@ -106,6 +114,7 @@ class _MainWindowState extends State<MainWindow> {
       'color': _currentColor.value.toRadixString(16),
       'strokeWidth': _strokeWidth,
       'DataCardTypes': _dataCardTypes.map((dc) => dc.toJson()).toList(),
+      'Layout': _layoutSettings.toJson(),
     };
   }
 
@@ -136,6 +145,11 @@ class _MainWindowState extends State<MainWindow> {
             .toList();
       } else {
         _dataCardTypes = [];
+      }
+      if (json.containsKey('Layout')) {
+        _layoutSettings = LayoutSettings.fromJson(json['Layout'] as Map<String, dynamic>);
+      } else {
+        _layoutSettings = LayoutSettings();
       }
       _updateStatus('Loaded ${_points.where((p) => p != null).length} points');
     });
