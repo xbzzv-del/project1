@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'models/data_card.dart';
+import 'widgets/project_settings_dialog.dart';
 
 void main() {
   runApp(const DrawingApp());
@@ -38,6 +40,7 @@ class _MainWindowState extends State<MainWindow> {
   Color _currentColor = Colors.black;
   double _strokeWidth = 3.0;
   String? _currentFilePath;
+  List<DataCard> _dataCardTypes = [];
 
   void _updateStatus(String message) {
     setState(() {
@@ -70,6 +73,22 @@ class _MainWindowState extends State<MainWindow> {
     SystemNavigator.pop();
   }
 
+  void _showProjectSettings() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return ProjectSettingsDialog(
+          dataCardTypes: List.from(_dataCardTypes),
+          onDataCardTypesChanged: (List<DataCard> newDataCardTypes) {
+            setState(() {
+              _dataCardTypes = List.from(newDataCardTypes);
+            });
+          },
+        );
+      },
+    );
+  }
+
   Map<String, dynamic> _pointsToJson() {
     final List<Map<String, dynamic>?> pointsList = [];
     for (final point in _points) {
@@ -86,6 +105,7 @@ class _MainWindowState extends State<MainWindow> {
       'Points': pointsList,
       'color': _currentColor.value.toRadixString(16),
       'strokeWidth': _strokeWidth,
+      'DataCardTypes': _dataCardTypes.map((dc) => dc.toJson()).toList(),
     };
   }
 
@@ -108,6 +128,14 @@ class _MainWindowState extends State<MainWindow> {
       }
       if (json.containsKey('strokeWidth')) {
         _strokeWidth = (json['strokeWidth'] as num).toDouble();
+      }
+      if (json.containsKey('DataCardTypes')) {
+        final List<dynamic> dataCardTypesList = json['DataCardTypes'] as List<dynamic>;
+        _dataCardTypes = dataCardTypesList
+            .map((dc) => DataCard.fromJson(dc as Map<String, dynamic>))
+            .toList();
+      } else {
+        _dataCardTypes = [];
       }
       _updateStatus('Loaded ${_points.where((p) => p != null).length} points');
     });
@@ -358,6 +386,11 @@ class _MainWindowState extends State<MainWindow> {
         ),
         const PopupMenuDivider(),
         const PopupMenuItem<String>(
+          value: 'project_settings',
+          child: Text('Project settings...'),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
           value: 'quit',
           child: Text('Quit'),
         ),
@@ -372,6 +405,9 @@ class _MainWindowState extends State<MainWindow> {
             break;
           case 'save_as':
             _saveAs();
+            break;
+          case 'project_settings':
+            _showProjectSettings();
             break;
           case 'quit':
             _quitApp();
