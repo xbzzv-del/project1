@@ -386,7 +386,13 @@ class _MainWindowState extends State<MainWindow> {
     );
 
     if (name != null && selectedType != null) {
-      final newCard = selectedType.copyFromType(selectedType, name: name);
+      final newCard = DataCard(
+        typeName: selectedType.typeName,
+        width: selectedType.width,
+        height: selectedType.height,
+        name: name,
+        dataWidgetList: selectedType.dataWidgetList.map((dw) => dw.copyWith()).toList(),
+      );
       setState(() {
         _cardList.add(newCard);
         _selectedCard = newCard;
@@ -512,12 +518,14 @@ class _MainWindowState extends State<MainWindow> {
               itemCount: _cardList.length,
               itemBuilder: (context, index) {
                 final card = _cardList[index];
-                return ListTile(
-                  title: Text('${card.name} (${card.typeName})'),
-                  selected: _selectedCard == card,
-                  onTap: () => _selectCard(card),
+                return GestureDetector(
                   onDoubleTap: () => _showCardProperties(),
-                  selectedTileColor: Colors.blue.withOpacity(0.1),
+                  child: ListTile(
+                    title: Text('${card.name} (${card.typeName})'),
+                    selected: _selectedCard == card,
+                    onTap: () => _selectCard(card),
+                    selectedTileColor: Colors.blue.withOpacity(0.1),
+                  ),
                 );
               },
             ),
@@ -749,7 +757,7 @@ class DataCardPainter extends CustomPainter {
       canvas,
       Offset(
         cardRect.left + 4,
-        cardRect.top + 4 + textPainter.height / 2 - textPainter.descent / 2,
+        cardRect.top + 4,
       ),
     );
   }
