@@ -387,11 +387,11 @@ class _MainWindowState extends State<MainWindow> {
 
     if (name != null && selectedType != null) {
       final newCard = DataCard(
-        typeName: selectedType.typeName,
-        width: selectedType.width,
-        height: selectedType.height,
+        typeName: selectedType!.typeName,
+        width: selectedType!.width,
+        height: selectedType!.height,
         name: name,
-        dataWidgetList: selectedType.dataWidgetList.map((dw) => dw.copyWith()).toList(),
+        dataWidgetList: selectedType!.dataWidgetList.map((dw) => dw.copyWith()).toList(),
       );
       setState(() {
         _cardList.add(newCard);
