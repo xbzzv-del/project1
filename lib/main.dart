@@ -324,79 +324,87 @@ class _MainWindowState extends State<MainWindow> {
       return;
     }
 
-    final nameController = TextEditingController();
-    DataCard? selectedType;
-
-    final name = await showDialog<String>(
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Add New Card'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  hintText: 'Enter card name',
-                ),
-                autofocus: true,
-              ),
-              const SizedBox(height: 16),
-              const Text('Select DataCard Type:'),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 200,
-                width: double.maxFinite,
-                child: ListView.builder(
-                  itemCount: _dataCardTypes.length,
-                  itemBuilder: (context, index) {
-                    final type = _dataCardTypes[index];
-                    return ListTile(
-                      title: Text(type.typeName),
-                      selected: selectedType == type,
-                      onTap: () {
-                        selectedType = type;
-                        Navigator.of(context).pop();
+        DataCard? localSelectedType;
+        final nameController = TextEditingController();
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Text('Add New Card'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Name',
+                      hintText: 'Enter card name',
+                    ),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Select DataCard Type:'),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 200,
+                    width: double.maxFinite,
+                    child: ListView.builder(
+                      itemCount: _dataCardTypes.length,
+                      itemBuilder: (context, index) {
+                        final type = _dataCardTypes[index];
+                        return ListTile(
+                          title: Text(type.typeName),
+                          selected: localSelectedType == type,
+                          onTap: () {
+                            localSelectedType = type;
+                            setState(() {});
+                          },
+                          selectedTileColor: Colors.blue.withOpacity(0.1),
+                        );
                       },
-                      selectedTileColor: Colors.blue.withOpacity(0.1),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                if (selectedType != null) {
-                  Navigator.of(context).pop(nameController.text);
-                }
-              },
-              child: const Text('OK'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: localSelectedType != null
+                      ? () => Navigator.of(context).pop({
+                          'name': nameController.text,
+                          'type': localSelectedType,
+                        })
+                      : null,
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
 
-    if (name != null && selectedType != null) {
-      final newCard = DataCard(
-        typeName: selectedType!.typeName,
-        width: selectedType!.width,
-        height: selectedType!.height,
-        name: name,
-        dataWidgetList: selectedType!.dataWidgetList.map((dw) => dw.copyWith()).toList(),
-      );
-      setState(() {
-        _cardList.add(newCard);
-        _selectedCard = newCard;
-      });
+    if (result != null) {
+      final name = result['name'] as String?;
+      final selectedType = result['type'] as DataCard?;
+      if (name != null && selectedType != null) {
+        final newCard = DataCard(
+          typeName: selectedType.typeName,
+          width: selectedType.width,
+          height: selectedType.height,
+          name: name,
+          dataWidgetList: selectedType.dataWidgetList.map((dw) => dw.copyWith()).toList(),
+        );
+        setState(() {
+          _cardList.add(newCard);
+          _selectedCard = newCard;
+        });
+      }
     }
   }
 
