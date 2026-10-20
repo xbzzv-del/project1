@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'models/data_card.dart';
+import 'models/data_widget.dart';
 import 'models/layout_settings.dart';
 import 'widgets/project_settings_dialog.dart';
 
@@ -43,6 +44,8 @@ class _MainWindowState extends State<MainWindow> {
   String? _currentFilePath;
   List<DataCard> _dataCardTypes = [];
   LayoutSettings _layoutSettings = LayoutSettings();
+  List<DataCard> _cardList = [];
+  DataCard? _selectedCard;
 
   void _updateStatus(String message) {
     setState(() {
@@ -115,6 +118,7 @@ class _MainWindowState extends State<MainWindow> {
       'strokeWidth': _strokeWidth,
       'DataCardTypes': _dataCardTypes.map((dc) => dc.toJson()).toList(),
       'Layout': _layoutSettings.toJson(),
+      'CardList': _cardList.map((c) => c.toJson()).toList(),
     };
   }
 
@@ -151,6 +155,15 @@ class _MainWindowState extends State<MainWindow> {
       } else {
         _layoutSettings = LayoutSettings();
       }
+      if (json.containsKey('CardList')) {
+        final List<dynamic> cardListData = json['CardList'] as List<dynamic>;
+        _cardList = cardListData
+            .map((c) => DataCard.fromJson(c as Map<String, dynamic>))
+            .toList();
+      } else {
+        _cardList = [];
+      }
+      _selectedCard = null;
       _updateStatus('Loaded ${_points.where((p) => p != null).length} points');
     });
   }
@@ -295,6 +308,263 @@ class _MainWindowState extends State<MainWindow> {
     }
   }
 
+  void _selectCard(DataCard? card) {
+    setState(() {
+      _selectedCard = card;
+    });
+  }
+
+  Future<void> _addCard() async {
+    if (_dataCardTypes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please define DataCard types in Settings first'),
+        ),
+      );
+      return;
+    }
+
+    final nameController = TextEditingController();
+    DataCard? selectedType;
+
+    final name = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Add New Card'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  hintText: 'Enter card name',
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              const Text('Select DataCard Type:'),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 200,
+                width: double.maxFinite,
+                child: ListView.builder(
+                  itemCount: _dataCardTypes.length,
+                  itemBuilder: (context, index) {
+                    final type = _dataCardTypes[index];
+                    return ListTile(
+                      title: Text(type.typeName),
+                      selected: selectedType == type,
+                      onTap: () {
+                        selectedType = type;
+                        Navigator.of(context).pop();
+                      },
+                      selectedTileColor: Colors.blue.withOpacity(0.1),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (selectedType != null) {
+                  Navigator.of(context).pop(nameController.text);
+                }
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (name != null && selectedType != null) {
+      final newCard = selectedType.copyFromType(selectedType, name: name);
+      setState(() {
+        _cardList.add(newCard);
+        _selectedCard = newCard;
+      });
+    }
+  }
+
+  Future<void> _deleteCard() async {
+    if (_selectedCard == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Card'),
+          content: Text('Are you sure you want to delete "${_selectedCard!.name}"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _cardList.remove(_selectedCard!);
+        _selectedCard = null;
+      });
+    }
+  }
+
+  Future<void> _showCardProperties() async {
+    if (_selectedCard == null) return;
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final nameController = TextEditingController(text: _selectedCard!.name);
+        return AlertDialog(
+          title: const Text('Card Properties'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Type: ${_selectedCard!.typeName}'),
+              const SizedBox(height: 8),
+              Text('Width: ${_selectedCard!.width}'),
+              const SizedBox(height: 8),
+              Text('Height: ${_selectedCard!.height}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _selectedCard = _selectedCard!.copyWith(name: nameController.text);
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLeftPane() {
+    return SizedBox(
+      width: 200,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _addCard,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _selectedCard != null ? _deleteCard : null,
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Delete'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _cardList.length,
+              itemBuilder: (context, index) {
+                final card = _cardList[index];
+                return ListTile(
+                  title: Text('${card.name} (${card.typeName})'),
+                  selected: _selectedCard == card,
+                  onTap: () => _selectCard(card),
+                  onDoubleTap: () => _showCardProperties(),
+                  selectedTileColor: Colors.blue.withOpacity(0.1),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiddlePane() {
+    if (_selectedCard == null) {
+      return Center(
+        child: Text(
+          'Please select a card from the list to edit',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+      );
+    }
+
+    return Container(
+      color: const Color(0xFF808080),
+      child: CustomPaint(
+        painter: DataCardPainter(
+          card: _selectedCard!,
+          backgroundColor: _parseColor(_layoutSettings.backgroundColor),
+        ),
+        size: Size.infinite,
+      ),
+    );
+  }
+
+  Color _parseColor(String hexColor) {
+    try {
+      if (hexColor.startsWith('#') && hexColor.length == 7) {
+        return Color(int.parse(hexColor.substring(1), radix: 16) | 0xFF000000);
+      }
+    } catch (e) {}
+    return Colors.black;
+  }
+
+  Widget _buildRightPane() {
+    return const SizedBox(
+      width: 200,
+      child: Placeholder(),
+    );
+  }
+
   Widget _buildCanvas() {
     return MouseRegion(
       cursor: SystemMouseCursors.basic,
@@ -341,43 +611,47 @@ class _MainWindowState extends State<MainWindow> {
           _buildFileMenu(),
         ],
       ),
-      body: Column(
+      body: Row(
         children: [
+          _buildLeftPane(),
+          const VerticalDivider(width: 1),
           Expanded(
-            child: _buildCanvas(),
+            child: _buildMiddlePane(),
           ),
-          Container(
-            color: Theme.of(context).colorScheme.surfaceVariant,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          const VerticalDivider(width: 1),
+          _buildRightPane(),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        color: Theme.of(context).colorScheme.surfaceVariant,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              _statusMessage,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  _statusMessage,
-                  style: Theme.of(context).textTheme.bodySmall,
+                Container(
+                  width: 20,
+                  height: 20,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: _currentColor,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: _currentColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Text(
-                      'Stroke: ${_strokeWidth.toStringAsFixed(1)}px',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+                Text(
+                  'Stroke: ${_strokeWidth.toStringAsFixed(1)}px',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -430,6 +704,59 @@ class _MainWindowState extends State<MainWindow> {
       },
     );
   }
+}
+
+class DataCardPainter extends CustomPainter {
+  final DataCard card;
+  final Color backgroundColor;
+
+  const DataCardPainter({
+    required this.card,
+    required this.backgroundColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cardPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: card.name,
+        style: const TextStyle(color: Colors.black, fontSize: 12, fontFamily: 'Arial'),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+
+    final cardRect = Rect.fromLTWH(
+      (size.width - card.width) / 2,
+      (size.height - card.height) / 2,
+      card.width.toDouble(),
+      card.height.toDouble(),
+    );
+
+    canvas.drawRect(cardRect, cardPaint);
+    canvas.drawRect(cardRect, borderPaint);
+
+    textPainter.paint(
+      canvas,
+      Offset(
+        cardRect.left + 4,
+        cardRect.top + 4 + textPainter.height / 2 - textPainter.descent / 2,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRepaint(DataCardPainter oldDelegate) =>
+      oldDelegate.card != card || oldDelegate.backgroundColor != backgroundColor;
 }
 
 class DrawingPainter extends CustomPainter {
