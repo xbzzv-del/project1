@@ -1,7 +1,97 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../models/data_card.dart';
 import '../models/layout_settings.dart';
+
+class _ColorPickerDialog extends StatefulWidget {
+  final Color currentColor;
+
+  const _ColorPickerDialog({super.key, required this.currentColor});
+
+  @override
+  State<_ColorPickerDialog> createState() => _ColorPickerDialogState();
+}
+
+class _ColorPickerDialogState extends State<_ColorPickerDialog> {
+  late HSLColor _currentColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentColor = HSLColor.fromColor(widget.currentColor);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Pick a color'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 40,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: _currentColor.toColor(),
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '#${(_currentColor.toColor().value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}'.toLowerCase(),
+            style: const TextStyle(fontSize: 16, fontFamily: 'monospace'),
+          ),
+          const SizedBox(height: 16),
+          const Text('Hue', style: TextStyle(fontWeight: FontWeight.bold)),
+          Slider(
+            value: _currentColor.hue,
+            min: 0,
+            max: 360,
+            onChanged: (double hue) {
+              setState(() {
+                _currentColor = _currentColor.withHue(hue);
+              });
+            },
+          ),
+          const SizedBox(height: 8),
+          const Text('Saturation', style: TextStyle(fontWeight: FontWeight.bold)),
+          Slider(
+            value: _currentColor.saturation,
+            min: 0,
+            max: 1,
+            onChanged: (double saturation) {
+              setState(() {
+                _currentColor = _currentColor.withSaturation(saturation);
+              });
+            },
+          ),
+          const SizedBox(height: 8),
+          const Text('Lightness', style: TextStyle(fontWeight: FontWeight.bold)),
+          Slider(
+            value: _currentColor.lightness,
+            min: 0,
+            max: 1,
+            onChanged: (double lightness) {
+              setState(() {
+                _currentColor = _currentColor.withLightness(lightness);
+              });
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(_currentColor.toColor()),
+          child: const Text('OK'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+      ],
+    );
+  }
+}
 
 class ProjectSettingsDialog extends StatefulWidget {
   final List<DataCard> dataCardTypes;
@@ -105,6 +195,31 @@ class _ProjectSettingsDialogState extends State<ProjectSettingsDialog> {
     return '#${(color.value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}'.toLowerCase();
   }
 
+  void _updateColorFromHex(String propertyName, String hexValue) {
+    if (hexValue.length == 7 && hexValue.startsWith('#')) {
+      final color = _parseColor(hexValue);
+      setState(() {
+        switch (propertyName) {
+          case 'background':
+            _layoutSettings = _layoutSettings.copyWith(backgroundColor: hexValue);
+            break;
+          case 'button_fg':
+            _layoutSettings = _layoutSettings.copyWith(buttonFgColor: hexValue);
+            break;
+          case 'button_bg':
+            _layoutSettings = _layoutSettings.copyWith(buttonBgColor: hexValue);
+            break;
+          case 'text1':
+            _layoutSettings = _layoutSettings.copyWith(text1Color: hexValue);
+            break;
+          case 'text2':
+            _layoutSettings = _layoutSettings.copyWith(text2Color: hexValue);
+            break;
+        }
+      });
+    }
+  }
+
   Future<void> _pickColor(String propertyName) async {
     Color currentColor;
     switch (propertyName) {
@@ -130,23 +245,7 @@ class _ProjectSettingsDialogState extends State<ProjectSettingsDialog> {
     final pickedColor = await showDialog<Color>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Pick a color'),
-          content: SingleChildScrollView(
-            child: BlockPicker(
-              pickerColor: currentColor,
-              onColorChanged: (Color color) {
-                Navigator.of(context).pop(color);
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(currentColor),
-              child: const Text('OK'),
-            ),
-          ],
-        );
+        return _ColorPickerDialog(currentColor: currentColor);
       },
     );
 
@@ -543,6 +642,7 @@ class _ProjectSettingsDialogState extends State<ProjectSettingsDialog> {
             colorController: _bgColorController,
             color: _parseColor(_layoutSettings.backgroundColor),
             onColorTap: () => _pickColor('background'),
+            propertyName: 'background',
           ),
           const SizedBox(height: 16),
           _buildColorProperty(
@@ -550,6 +650,7 @@ class _ProjectSettingsDialogState extends State<ProjectSettingsDialog> {
             colorController: _buttonFgColorController,
             color: _parseColor(_layoutSettings.buttonFgColor),
             onColorTap: () => _pickColor('button_fg'),
+            propertyName: 'button_fg',
           ),
           const SizedBox(height: 16),
           _buildColorProperty(
@@ -557,6 +658,7 @@ class _ProjectSettingsDialogState extends State<ProjectSettingsDialog> {
             colorController: _buttonBgColorController,
             color: _parseColor(_layoutSettings.buttonBgColor),
             onColorTap: () => _pickColor('button_bg'),
+            propertyName: 'button_bg',
           ),
           const SizedBox(height: 16),
           _buildColorProperty(
@@ -564,6 +666,7 @@ class _ProjectSettingsDialogState extends State<ProjectSettingsDialog> {
             colorController: _text1ColorController,
             color: _parseColor(_layoutSettings.text1Color),
             onColorTap: () => _pickColor('text1'),
+            propertyName: 'text1',
           ),
           const SizedBox(height: 16),
           _buildColorProperty(
@@ -571,6 +674,7 @@ class _ProjectSettingsDialogState extends State<ProjectSettingsDialog> {
             colorController: _text2ColorController,
             color: _parseColor(_layoutSettings.text2Color),
             onColorTap: () => _pickColor('text2'),
+            propertyName: 'text2',
           ),
           const SizedBox(height: 16),
           const Divider(),
@@ -596,6 +700,7 @@ class _ProjectSettingsDialogState extends State<ProjectSettingsDialog> {
     required TextEditingController colorController,
     required Color color,
     required VoidCallback onColorTap,
+    required String propertyName,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -629,9 +734,12 @@ class _ProjectSettingsDialogState extends State<ProjectSettingsDialog> {
                 ),
                 onChanged: (value) {
                   if (value.length == 7 && value.startsWith('#')) {
-                    setState(() {
-                      colorController.text = value;
-                    });
+                    _updateColorFromHex(propertyName, value);
+                  }
+                },
+                onSubmitted: (value) {
+                  if (value.length == 7 && value.startsWith('#')) {
+                    _updateColorFromHex(propertyName, value);
                   }
                 },
               ),
