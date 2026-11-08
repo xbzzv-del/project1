@@ -479,7 +479,7 @@ class _MainWindowState extends State<MainWindow> {
       builder: (BuildContext context) {
         DataWidgetType? selectedType = DataWidgetType.label;
         final labelController = TextEditingController();
-        String? selectedFont = _layoutSettings.text1FontFamily;
+        int? selectedFontIndex = 0;
         DataWidgetFontWeight? selectedFontWeight = DataWidgetFontWeight.plain;
         int? selectedFontSize = 12;
 
@@ -518,20 +518,20 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: selectedFont,
+                    DropdownButtonFormField<int>(
+                      value: selectedFontIndex,
                       onChanged: (value) {
                         setState(() {
-                          selectedFont = value;
+                          selectedFontIndex = value;
                         });
                       },
                       items: [
                         DropdownMenuItem(
-                          value: _layoutSettings.text1FontFamily,
+                          value: 0,
                           child: Text('Text1 (${_layoutSettings.text1FontFamily})'),
                         ),
                         DropdownMenuItem(
-                          value: _layoutSettings.text2FontFamily,
+                          value: 1,
                           child: Text('Text2 (${_layoutSettings.text2FontFamily})'),
                         ),
                       ],
@@ -590,7 +590,7 @@ class _MainWindowState extends State<MainWindow> {
                   onPressed: () => Navigator.of(context).pop({
                     'type': selectedType,
                     'label': labelController.text,
-                    'font': selectedFont,
+                    'font': selectedFontIndex,
                     'fontWeight': selectedFontWeight,
                     'fontSize': selectedFontSize,
                   }),
@@ -631,7 +631,7 @@ class _MainWindowState extends State<MainWindow> {
       builder: (BuildContext context) {
         DataWidgetType? selectedType = widget.type;
         final labelController = TextEditingController(text: widget.label);
-        String? selectedFont = _layoutSettings.text1FontFamily;
+        int? selectedFontIndex = 0;
         DataWidgetFontWeight? selectedFontWeight = widget.fontWeight;
         int? selectedFontSize = widget.fontSize;
 
@@ -670,20 +670,20 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: selectedFont,
+                    DropdownButtonFormField<int>(
+                      value: selectedFontIndex,
                       onChanged: (value) {
                         setState(() {
-                          selectedFont = value;
+                          selectedFontIndex = value;
                         });
                       },
                       items: [
                         DropdownMenuItem(
-                          value: _layoutSettings.text1FontFamily,
+                          value: 0,
                           child: Text('Text1 (${_layoutSettings.text1FontFamily})'),
                         ),
                         DropdownMenuItem(
-                          value: _layoutSettings.text2FontFamily,
+                          value: 1,
                           child: Text('Text2 (${_layoutSettings.text2FontFamily})'),
                         ),
                       ],
@@ -742,7 +742,7 @@ class _MainWindowState extends State<MainWindow> {
                   onPressed: () => Navigator.of(context).pop({
                     'type': selectedType,
                     'label': labelController.text,
-                    'font': selectedFont,
+                    'font': selectedFontIndex,
                     'fontWeight': selectedFontWeight,
                     'fontSize': selectedFontSize,
                   }),
