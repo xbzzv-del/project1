@@ -47,6 +47,12 @@ class _MainWindowState extends State<MainWindow> {
   List<DataCard> _cardList = [];
   DataCard? _selectedCard;
 
+  @override
+  void initState() {
+    super.initState();
+    _dataCardTypes = DataCard.getDefaultTypes();
+  }
+
   void _updateStatus(String message) {
     setState(() {
       _statusMessage = message;
@@ -148,7 +154,7 @@ class _MainWindowState extends State<MainWindow> {
             .map((dc) => DataCard.fromJson(dc as Map<String, dynamic>))
             .toList();
       } else {
-        _dataCardTypes = [];
+        _dataCardTypes = DataCard.getDefaultTypes();
       }
       if (json.containsKey('Layout')) {
         _layoutSettings = LayoutSettings.fromJson(json['Layout'] as Map<String, dynamic>);
@@ -314,6 +320,19 @@ class _MainWindowState extends State<MainWindow> {
     });
   }
 
+  void _setStartup(bool value) {
+    if (_selectedCard == null) return;
+
+    setState(() {
+      if (value) {
+        for (final card in _cardList) {
+          card.startup = false;
+        }
+      }
+      _selectedCard!.startup = value;
+    });
+  }
+
   Future<void> _addCard() async {
     if (_dataCardTypes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -398,6 +417,7 @@ class _MainWindowState extends State<MainWindow> {
           width: selectedType.width,
           height: selectedType.height,
           name: name,
+          startup: false,
           dataWidgetList: selectedType.dataWidgetList.map((dw) => dw.copyWith()).toList(),
         );
         setState(() {
@@ -439,52 +459,329 @@ class _MainWindowState extends State<MainWindow> {
     }
   }
 
-  Future<void> _showCardProperties() async {
+  void _updateCardName(String newName) {
     if (_selectedCard == null) return;
+    setState(() {
+      _selectedCard = _selectedCard!.copyWith(name: newName);
+    });
+  }
 
-    await showDialog(
+  Future<void> _addWidget() async {
+    if (_selectedCard == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a card first')),
+      );
+      return;
+    }
+
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext context) {
-        final nameController = TextEditingController(text: _selectedCard!.name);
-        return AlertDialog(
-          title: const Text('Card Properties'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
+        DataWidgetType? selectedType = DataWidgetType.label;
+        final labelController = TextEditingController();
+        String? selectedFont = _layoutSettings.text1FontFamily;
+        DataWidgetFontWeight? selectedFontWeight = DataWidgetFontWeight.plain;
+        int? selectedFontSize = 12;
+
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Text('Add Widget'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<DataWidgetType>(
+                      value: selectedType,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedType = value;
+                        });
+                      },
+                      items: DataWidgetType.values
+                          .map((type) => DropdownMenuItem(
+                                value: type,
+                                child: Text(type.toString().split('.').last),
+                              ))
+                          .toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Type',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: labelController,
+                      decoration: const InputDecoration(
+                        labelText: 'Label',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedFont,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedFont = value;
+                        });
+                      },
+                      items: [
+                        DropdownMenuItem(
+                          value: _layoutSettings.text1FontFamily,
+                          child: Text('Text1 (${_layoutSettings.text1FontFamily})'),
+                        ),
+                        DropdownMenuItem(
+                          value: _layoutSettings.text2FontFamily,
+                          child: Text('Text2 (${_layoutSettings.text2FontFamily})'),
+                        ),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'Font',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<DataWidgetFontWeight>(
+                      value: selectedFontWeight,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedFontWeight = value;
+                        });
+                      },
+                      items: DataWidgetFontWeight.values
+                          .map((fw) => DropdownMenuItem(
+                                value: fw,
+                                child: Text(fw.toString().split('.').last),
+                              ))
+                          .toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Font Weight',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<int>(
+                      value: selectedFontSize,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedFontSize = value;
+                        });
+                      },
+                      items: List.generate(30, (index) => 6 + index * 2)
+                          .map((size) => DropdownMenuItem(
+                                value: size,
+                                child: Text(size.toString()),
+                              ))
+                          .toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Font Size',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Text('Type: ${_selectedCard!.typeName}'),
-              const SizedBox(height: 8),
-              Text('Width: ${_selectedCard!.width}'),
-              const SizedBox(height: 8),
-              Text('Height: ${_selectedCard!.height}'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _selectedCard = _selectedCard!.copyWith(name: nameController.text);
-                });
-                Navigator.of(context).pop();
-              },
-              child: const Text('OK'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop({
+                    'type': selectedType,
+                    'label': labelController.text,
+                    'font': selectedFont,
+                    'fontWeight': selectedFontWeight,
+                    'fontSize': selectedFontSize,
+                  }),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
+
+    if (result != null) {
+      final newWidget = DataWidget(
+        label: result['label'] as String? ?? '',
+        type: result['type'] as DataWidgetType,
+        fontSize: result['fontSize'] as int? ?? 12,
+        fontWeight: result['fontWeight'] as DataWidgetFontWeight? ?? DataWidgetFontWeight.plain,
+      );
+      setState(() {
+        final cardIndex = _cardList.indexOf(_selectedCard!);
+        if (cardIndex != -1) {
+          final updatedCard = _selectedCard!.copyWith(
+            dataWidgetList: [..._selectedCard!.dataWidgetList, newWidget],
+          );
+          _cardList[cardIndex] = updatedCard;
+          _selectedCard = updatedCard;
+        }
+      });
+    }
+  }
+
+  Future<void> _editWidget(DataWidget widget, int widgetIndex) async {
+    if (_selectedCard == null) return;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (BuildContext context) {
+        DataWidgetType? selectedType = widget.type;
+        final labelController = TextEditingController(text: widget.label);
+        String? selectedFont = _layoutSettings.text1FontFamily;
+        DataWidgetFontWeight? selectedFontWeight = widget.fontWeight;
+        int? selectedFontSize = widget.fontSize;
+
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Text('Edit Widget'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<DataWidgetType>(
+                      value: selectedType,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedType = value;
+                        });
+                      },
+                      items: DataWidgetType.values
+                          .map((type) => DropdownMenuItem(
+                                value: type,
+                                child: Text(type.toString().split('.').last),
+                              ))
+                          .toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Type',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: labelController,
+                      decoration: const InputDecoration(
+                        labelText: 'Label',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedFont,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedFont = value;
+                        });
+                      },
+                      items: [
+                        DropdownMenuItem(
+                          value: _layoutSettings.text1FontFamily,
+                          child: Text('Text1 (${_layoutSettings.text1FontFamily})'),
+                        ),
+                        DropdownMenuItem(
+                          value: _layoutSettings.text2FontFamily,
+                          child: Text('Text2 (${_layoutSettings.text2FontFamily})'),
+                        ),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'Font',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<DataWidgetFontWeight>(
+                      value: selectedFontWeight,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedFontWeight = value;
+                        });
+                      },
+                      items: DataWidgetFontWeight.values
+                          .map((fw) => DropdownMenuItem(
+                                value: fw,
+                                child: Text(fw.toString().split('.').last),
+                              ))
+                          .toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Font Weight',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<int>(
+                      value: selectedFontSize,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedFontSize = value;
+                        });
+                      },
+                      items: List.generate(30, (index) => 6 + index * 2)
+                          .map((size) => DropdownMenuItem(
+                                value: size,
+                                child: Text(size.toString()),
+                              ))
+                          .toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Font Size',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop({
+                    'type': selectedType,
+                    'label': labelController.text,
+                    'font': selectedFont,
+                    'fontWeight': selectedFontWeight,
+                    'fontSize': selectedFontSize,
+                  }),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null) {
+      final updatedWidget = widget.copyWith(
+        label: result['label'] as String? ?? widget.label,
+        type: result['type'] as DataWidgetType? ?? widget.type,
+        fontSize: result['fontSize'] as int? ?? widget.fontSize,
+        fontWeight: result['fontWeight'] as DataWidgetFontWeight? ?? widget.fontWeight,
+      );
+      setState(() {
+        final cardIndex = _cardList.indexOf(_selectedCard!);
+        if (cardIndex != -1) {
+          final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
+          widgets[widgetIndex] = updatedWidget;
+          final updatedCard = _selectedCard!.copyWith(dataWidgetList: widgets);
+          _cardList[cardIndex] = updatedCard;
+          _selectedCard = updatedCard;
+        }
+      });
+    }
+  }
+
+  Color _parseColor(String hexColor) {
+    try {
+      if (hexColor.startsWith('#') && hexColor.length == 7) {
+        return Color(int.parse(hexColor.substring(1), radix: 16) | 0xFF000000);
+      }
+    } catch (e) {}
+    return Colors.black;
   }
 
   Widget _buildLeftPane() {
@@ -492,6 +789,13 @@ class _MainWindowState extends State<MainWindow> {
       width: 200,
       child: Column(
         children: [
+          const Padding(
+            padding: EdgeInsets.all(8),
+            child: Text(
+              'CardList',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(8),
             child: Row(
@@ -538,6 +842,52 @@ class _MainWindowState extends State<MainWindow> {
               },
             ),
           ),
+          const Divider(height: 1),
+          const Padding(
+            padding: EdgeInsets.all(8),
+            child: Text(
+              'Card properties',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_selectedCard != null) ...[
+                  const SizedBox(height: 4),
+                  TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Name',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    controller: TextEditingController(text: _selectedCard!.name),
+                    onChanged: _updateCardName,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _selectedCard!.startup,
+                        onChanged: _setStartup,
+                      ),
+                      const Text('Startup'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Type: ${_selectedCard!.typeName}'),
+                  const SizedBox(height: 4),
+                  Text('Width: ${_selectedCard!.width}'),
+                  const SizedBox(height: 4),
+                  Text('Height: ${_selectedCard!.height}'),
+                ] else ...[
+                  const Text('No card selected'),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -565,19 +915,96 @@ class _MainWindowState extends State<MainWindow> {
     );
   }
 
-  Color _parseColor(String hexColor) {
-    try {
-      if (hexColor.startsWith('#') && hexColor.length == 7) {
-        return Color(int.parse(hexColor.substring(1), radix: 16) | 0xFF000000);
-      }
-    } catch (e) {}
-    return Colors.black;
+  Widget _buildRightPane() {
+    return SizedBox(
+      width: 200,
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(8),
+            child: Text(
+              'Widget List',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: ElevatedButton.icon(
+              onPressed: _addWidget,
+              icon: const Icon(Icons.add),
+              label: const Text('Add widget'),
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: _selectedCard == null
+                ? const Center(child: Text('No card selected'))
+                : ListView.builder(
+                    itemCount: _selectedCard!.dataWidgetList.length,
+                    itemBuilder: (context, index) {
+                      final widget = _selectedCard!.dataWidgetList[index];
+                      return GestureDetector(
+                        onDoubleTap: () => _editWidget(widget, index),
+                        child: ListTile(
+                          title: Text(widget.label.isNotEmpty
+                              ? widget.label
+                              : widget.type.toString().split('.').last),
+                          subtitle: Text('${widget.type.toString().split('.').last}'),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildRightPane() {
-    return const SizedBox(
-      width: 200,
-      child: Placeholder(),
+  void _showCardProperties() {
+    if (_selectedCard == null) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final nameController = TextEditingController(text: _selectedCard!.name);
+        return AlertDialog(
+          title: const Text('Card Properties'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Type: ${_selectedCard!.typeName}'),
+              const SizedBox(height: 8),
+              Text('Width: ${_selectedCard!.width}'),
+              const SizedBox(height: 8),
+              Text('Height: ${_selectedCard!.height}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _selectedCard = _selectedCard!.copyWith(name: nameController.text);
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 
