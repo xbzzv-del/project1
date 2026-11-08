@@ -870,18 +870,16 @@ class _MainWindowState extends State<MainWindow> {
     });
   }
 
-  void _showWidgetContextMenu(BuildContext context, DataWidget widget, Offset position) {
+  void _showWidgetContextMenu(BuildContext context, DataWidget widget, Offset globalPosition) {
     final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final RenderBox button = context.findRenderObject() as RenderBox;
-    final Offset offset = button.localToGlobal(position, ancestor: overlay);
 
     showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
-        offset.dx,
-        offset.dy,
-        overlay.size.width - offset.dx,
-        overlay.size.height - offset.dy,
+        globalPosition.dx,
+        globalPosition.dy,
+        overlay.size.width - globalPosition.dx,
+        overlay.size.height - globalPosition.dy,
       ),
       items: <PopupMenuEntry<String>>[
         const PopupMenuItem<String>(
