@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
-import 'dart:io' show Platform;
+import 'dart:io' as io;
 import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'models/data_card.dart';
@@ -11,12 +11,10 @@ import 'widgets/project_settings_dialog.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    final logicalSize = ui.window.physicalSize / ui.window.devicePixelRatio;
-    ui.window.physicalSize = Size(1600, 1000) * ui.window.devicePixelRatio;
-  } catch (e) {
-    // Window size setting not supported on this platform
-  }
+  // Set initial window size for desktop platforms
+  // Note: Window size setting requires platform-specific implementation
+  // For Flutter desktop, consider using window_manager package
+  // For now, window size can be set manually by the user
   runApp(const DrawingApp());
 }
 
@@ -227,7 +225,7 @@ class _MainWindowState extends State<MainWindow> {
 
   Future<void> _saveToFile(String path) async {
     final json = _pointsToJson();
-    final file = File(path);
+    final file = io.File(path);
     await file.writeAsString(jsonEncode(json));
   }
 
@@ -240,7 +238,7 @@ class _MainWindowState extends State<MainWindow> {
       );
 
       if (result != null && result.files.isNotEmpty) {
-        final file = File(result.files.first.path!);
+        final file = io.File(result.files.first.path!);
         final contents = await file.readAsString();
         final json = jsonDecode(contents) as Map<String, dynamic>;
         _pointsFromJson(json);
