@@ -320,8 +320,8 @@ class _MainWindowState extends State<MainWindow> {
     });
   }
 
-  void _setStartup(bool value) {
-    if (_selectedCard == null) return;
+  void _setStartup(bool? value) {
+    if (_selectedCard == null || value == null) return;
 
     setState(() {
       if (value) {
