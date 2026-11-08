@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io' show Platform;
+import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'models/data_card.dart';
 import 'models/data_widget.dart';
@@ -9,6 +10,13 @@ import 'models/layout_settings.dart';
 import 'widgets/project_settings_dialog.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    final logicalSize = ui.window.physicalSize / ui.window.devicePixelRatio;
+    ui.window.physicalSize = Size(1600, 1000) * ui.window.devicePixelRatio;
+  } catch (e) {
+    // Window size setting not supported on this platform
+  }
   runApp(const DrawingApp());
 }
 
@@ -46,11 +54,26 @@ class _MainWindowState extends State<MainWindow> {
   LayoutSettings _layoutSettings = LayoutSettings();
   List<DataCard> _cardList = [];
   DataCard? _selectedCard;
+  DataWidget? _selectedWidget;
+  FocusNode _widgetListFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _dataCardTypes = DataCard.getDefaultTypes();
+    _widgetListFocusNode.addListener(() {
+      if (!_widgetListFocusNode.hasFocus) {
+        setState(() {
+          _selectedWidget = null;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _widgetListFocusNode.dispose();
+    super.dispose();
   }
 
   void _updateStatus(String message) {
@@ -784,6 +807,110 @@ class _MainWindowState extends State<MainWindow> {
     return Colors.black;
   }
 
+  void _selectWidget(DataWidget widget) {
+    setState(() {
+      _selectedWidget = widget;
+    });
+  }
+
+  Future<void> _deleteWidget() async {
+    if (_selectedWidget == null || _selectedCard == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Widget'),
+          content: const Text('Are you sure you want to delete this widget?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        final cardIndex = _cardList.indexOf(_selectedCard!);
+        if (cardIndex != -1) {
+          final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
+          widgets.remove(_selectedWidget!);
+          final updatedCard = _selectedCard!.copyWith(dataWidgetList: widgets);
+          _cardList[cardIndex] = updatedCard;
+          _selectedCard = updatedCard;
+          _selectedWidget = null;
+        }
+      });
+    }
+  }
+
+  void _duplicateWidget() {
+    if (_selectedWidget == null || _selectedCard == null) return;
+
+    final duplicatedWidget = _selectedWidget!.copyWith(
+      x: _selectedWidget!.x + 10,
+      y: _selectedWidget!.y + 10,
+    );
+
+    setState(() {
+      final cardIndex = _cardList.indexOf(_selectedCard!);
+      if (cardIndex != -1) {
+        final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
+        widgets.add(duplicatedWidget);
+        final updatedCard = _selectedCard!.copyWith(dataWidgetList: widgets);
+        _cardList[cardIndex] = updatedCard;
+        _selectedCard = updatedCard;
+        _selectedWidget = duplicatedWidget;
+      }
+    });
+  }
+
+  void _showWidgetContextMenu(BuildContext context, DataWidget widget, Offset position) {
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RenderBox button = context.findRenderObject() as RenderBox;
+    final Offset offset = button.localToGlobal(position, ancestor: overlay);
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        offset.dx,
+        offset.dy,
+        overlay.size.width - offset.dx,
+        overlay.size.height - offset.dy,
+      ),
+      items: <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'delete',
+          child: Text('Delete'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'duplicate',
+          child: Text('Duplicate'),
+        ),
+      ],
+    ).then((String? value) {
+      if (value != null) {
+        switch (value) {
+          case 'delete':
+            _selectWidget(widget);
+            _deleteWidget();
+            break;
+          case 'duplicate':
+            _selectWidget(widget);
+            _duplicateWidget();
+            break;
+        }
+      }
+    });
+  }
+
   Widget _buildLeftPane() {
     return SizedBox(
       width: 200,
@@ -937,23 +1064,42 @@ class _MainWindowState extends State<MainWindow> {
           ),
           const Divider(),
           Expanded(
-            child: _selectedCard == null
-                ? const Center(child: Text('No card selected'))
-                : ListView.builder(
-                    itemCount: _selectedCard!.dataWidgetList.length,
-                    itemBuilder: (context, index) {
-                      final widget = _selectedCard!.dataWidgetList[index];
-                      return GestureDetector(
-                        onDoubleTap: () => _editWidget(widget, index),
-                        child: ListTile(
-                          title: Text(widget.label.isNotEmpty
-                              ? widget.label
-                              : widget.type.toString().split('.').last),
-                          subtitle: Text('${widget.type.toString().split('.').last}'),
-                        ),
-                      );
-                    },
-                  ),
+            child: Focus(
+              focusNode: _widgetListFocusNode,
+              onKey: (node, event) {
+                if (event is RawKeyDownEvent) {
+                  if (event.logicalKey == LogicalKeyboardKey.delete ||
+                      event.logicalKey == LogicalKeyboardKey.backspace) {
+                    if (_selectedWidget != null) {
+                      _deleteWidget();
+                      return KeyEventResult.handled;
+                    }
+                  }
+                }
+                return KeyEventResult.ignored;
+              },
+              child: _selectedCard == null
+                  ? const Center(child: Text('No card selected'))
+                  : ListView.builder(
+                      itemCount: _selectedCard!.dataWidgetList.length,
+                      itemBuilder: (context, index) {
+                        final widget = _selectedCard!.dataWidgetList[index];
+                        return GestureDetector(
+                          onTap: () => _selectWidget(widget),
+                          onDoubleTap: () => _editWidget(widget, index),
+                          onSecondaryTapDown: (details) => _showWidgetContextMenu(context, widget, details.globalPosition),
+                          child: ListTile(
+                            title: Text(widget.label.isNotEmpty
+                                ? widget.label
+                                : widget.type.toString().split('.').last),
+                            subtitle: Text('${widget.type.toString().split('.').last}'),
+                            selected: _selectedWidget == widget,
+                            selectedTileColor: Colors.blue.withOpacity(0.1),
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),
