@@ -541,13 +541,13 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text('X: ' + x.toString()),
+                    Text('X: ' + widgetX.toString()),
                     const SizedBox(height: 8),
-                    Text('Y: ' + y.toString()),
+                    Text('Y: ' + widgetY.toString()),
                     const SizedBox(height: 8),
-                    Text('Width: ' + width.toString()),
+                    Text('Width: ' + widgetWidth.toString()),
                     const SizedBox(height: 8),
-                    Text('Height: ' + height.toString()),
+                    Text('Height: ' + widgetHeight.toString()),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
@@ -684,10 +684,10 @@ class _MainWindowState extends State<MainWindow> {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext context) {
-        final x = widget.x;
-        final y = widget.y;
-        final width = widget.width;
-        final height = widget.height;
+        final widgetX = widget.x;
+        final widgetY = widget.y;
+        final widgetWidth = widget.width;
+        final widgetHeight = widget.height;
         DataWidgetType? selectedType = widget.type;
         final labelController = TextEditingController(text: widget.label);
         int? selectedFontIndex = 0;
@@ -729,13 +729,13 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text('X: ' + x.toString()),
+                    Text('X: ' + widgetX.toString()),
                     const SizedBox(height: 8),
-                    Text('Y: ' + y.toString()),
+                    Text('Y: ' + widgetY.toString()),
                     const SizedBox(height: 8),
-                    Text('Width: ' + width.toString()),
+                    Text('Width: ' + widgetWidth.toString()),
                     const SizedBox(height: 8),
-                    Text('Height: ' + height.toString()),
+                    Text('Height: ' + widgetHeight.toString()),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
