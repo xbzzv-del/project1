@@ -541,13 +541,13 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text('X: $widgetX'),
+                    Text('X: ${editWidget.x}'),
                     const SizedBox(height: 8),
-                    Text('Y: $widgetY'),
+                    Text('Y: ${editWidget.y}'),
                     const SizedBox(height: 8),
-                    Text('Width: $widgetWidth'),
+                    Text('Width: ${editWidget.width}'),
                     const SizedBox(height: 8),
-                    Text('Height: $widgetHeight'),
+                    Text('Height: ${editWidget.height}'),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
@@ -684,18 +684,15 @@ class _MainWindowState extends State<MainWindow> {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext context) {
-        DataWidgetType? selectedType = widget.type;
-        final labelController = TextEditingController(text: widget.label);
+        final editWidget = widget;
+        DataWidgetType? selectedType = editWidget.type;
+        final labelController = TextEditingController(text: editWidget.label);
         int? selectedFontIndex = 0;
-        DataWidgetFontWeight? selectedFontWeight = widget.fontWeight;
-        int? selectedFontSize = widget.fontSize;
+        DataWidgetFontWeight? selectedFontWeight = editWidget.fontWeight;
+        int? selectedFontSize = editWidget.fontSize;
 
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            final widgetX = widget.x;
-            final widgetY = widget.y;
-            final widgetWidth = widget.width;
-            final widgetHeight = widget.height;
             return AlertDialog(
               title: const Text('Edit Widget'),
               content: SingleChildScrollView(
@@ -729,13 +726,13 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text('X: $widgetX'),
+                    Text('X: ${editWidget.x}'),
                     const SizedBox(height: 8),
-                    Text('Y: $widgetY'),
+                    Text('Y: ${editWidget.y}'),
                     const SizedBox(height: 8),
-                    Text('Width: $widgetWidth'),
+                    Text('Width: ${editWidget.width}'),
                     const SizedBox(height: 8),
-                    Text('Height: $widgetHeight'),
+                    Text('Height: ${editWidget.height}'),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
