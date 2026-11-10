@@ -541,13 +541,13 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text('X: ${widget.x}'),
+                    Text('X: $widgetX'),
                     const SizedBox(height: 8),
-                    Text('Y: ${widget.y}'),
+                    Text('Y: $widgetY'),
                     const SizedBox(height: 8),
-                    Text('Width: ${widget.width}'),
+                    Text('Width: $widgetWidth'),
                     const SizedBox(height: 8),
-                    Text('Height: ${widget.height}'),
+                    Text('Height: $widgetHeight'),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
@@ -681,6 +681,11 @@ class _MainWindowState extends State<MainWindow> {
   Future<void> _editWidget(DataWidget widget, int widgetIndex) async {
     if (_selectedCard == null) return;
 
+    final widgetX = widget.x;
+    final widgetY = widget.y;
+    final widgetWidth = widget.width;
+    final widgetHeight = widget.height;
+
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext context) {
@@ -725,13 +730,13 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text('X: ${widget.x}'),
+                    Text('X: $widgetX'),
                     const SizedBox(height: 8),
-                    Text('Y: ${widget.y}'),
+                    Text('Y: $widgetY'),
                     const SizedBox(height: 8),
-                    Text('Width: ${widget.width}'),
+                    Text('Width: $widgetWidth'),
                     const SizedBox(height: 8),
-                    Text('Height: ${widget.height}'),
+                    Text('Height: $widgetHeight'),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
