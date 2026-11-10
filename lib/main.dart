@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
-import 'dart:io' as io;
-import 'dart:ui' as ui;
+import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'models/data_card.dart';
 import 'models/data_widget.dart';
@@ -11,10 +10,6 @@ import 'widgets/project_settings_dialog.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  // Set initial window size for desktop platforms
-  // Note: Window size setting requires platform-specific implementation
-  // For Flutter desktop, consider using window_manager package
-  // For now, window size can be set manually by the user
   runApp(const DrawingApp());
 }
 
@@ -30,7 +25,11 @@ class DrawingApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: const MainWindow(),
+      home: const SizedBox(
+        width: 1600,
+        height: 1000,
+        child: MainWindow(),
+      ),
     );
   }
 }
@@ -53,6 +52,9 @@ class _MainWindowState extends State<MainWindow> {
   List<DataCard> _cardList = [];
   DataCard? _selectedCard;
   DataWidget? _selectedWidget;
+  DataWidget? _draggingWidget;
+  Offset? _dragStartOffset;
+  Offset? _dragStartPosition;
   FocusNode _widgetListFocusNode = FocusNode();
 
   @override
@@ -225,7 +227,7 @@ class _MainWindowState extends State<MainWindow> {
 
   Future<void> _saveToFile(String path) async {
     final json = _pointsToJson();
-    final file = io.File(path);
+    final file = File(path);
     await file.writeAsString(jsonEncode(json));
   }
 
@@ -238,7 +240,7 @@ class _MainWindowState extends State<MainWindow> {
       );
 
       if (result != null && result.files.isNotEmpty) {
-        final file = io.File(result.files.first.path!);
+        final file = File(result.files.first.path!);
         final contents = await file.readAsString();
         final json = jsonDecode(contents) as Map<String, dynamic>;
         _pointsFromJson(json);
@@ -539,6 +541,14 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    Text('X: ${widget.x}'),
+                    const SizedBox(height: 8),
+                    Text('Y: ${widget.y}'),
+                    const SizedBox(height: 8),
+                    Text('Width: ${widget.width}'),
+                    const SizedBox(height: 8),
+                    Text('Height: ${widget.height}'),
+                    const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
                       onChanged: (value) {
@@ -625,11 +635,34 @@ class _MainWindowState extends State<MainWindow> {
     );
 
     if (result != null) {
+      final cardWidth = _selectedCard!.width;
+      final cardHeight = _selectedCard!.height;
+      
+      // Calculate centered position for the new widget
+      int widgetX = 0;
+      int widgetY = 0;
+      int widgetWidth = 150;
+      int widgetHeight = 0;
+      
+      if (result['type'] as DataWidgetType == DataWidgetType.label) {
+        // For labels, center them on the card
+        widgetX = (cardWidth - widgetWidth) ~/ 2;
+        widgetY = (cardHeight - widgetHeight) ~/ 2;
+        
+        // Calculate actual height based on font size
+        final fontSize = result['fontSize'] as int? ?? 12;
+        widgetHeight = fontSize + 10; // Approximate height
+      }
+      
       final newWidget = DataWidget(
         label: result['label'] as String? ?? '',
         type: result['type'] as DataWidgetType,
         fontSize: result['fontSize'] as int? ?? 12,
         fontWeight: result['fontWeight'] as DataWidgetFontWeight? ?? DataWidgetFontWeight.plain,
+        x: widgetX,
+        y: widgetY,
+        width: widgetWidth,
+        height: widgetHeight,
       );
       setState(() {
         final cardIndex = _cardList.indexOf(_selectedCard!);
@@ -639,6 +672,7 @@ class _MainWindowState extends State<MainWindow> {
           );
           _cardList[cardIndex] = updatedCard;
           _selectedCard = updatedCard;
+          _selectedWidget = newWidget;
         }
       });
     }
@@ -690,6 +724,14 @@ class _MainWindowState extends State<MainWindow> {
                         border: OutlineInputBorder(),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    Text('X: ${widget.x}'),
+                    const SizedBox(height: 8),
+                    Text('Y: ${widget.y}'),
+                    const SizedBox(height: 8),
+                    Text('Width: ${widget.width}'),
+                    const SizedBox(height: 8),
+                    Text('Height: ${widget.height}'),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
@@ -805,6 +847,179 @@ class _MainWindowState extends State<MainWindow> {
     return Colors.black;
   }
 
+  void _handleCanvasTapDown(TapDownDetails details) {
+    if (_selectedCard == null) return;
+
+    final cardRect = Rect.fromLTWH(
+      (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
+      (MediaQuery.of(context).size.height - _selectedCard!.height) / 2,
+      _selectedCard!.width.toDouble(),
+      _selectedCard!.height.toDouble(),
+    );
+
+    final localPosition = details.localPosition;
+    
+    // Check if tap is inside any widget
+    for (final widget in _selectedCard!.dataWidgetList) {
+      if (widget.type == DataWidgetType.label) {
+        final widgetX = cardRect.left + widget.x.toDouble();
+        final widgetY = cardRect.top + widget.y.toDouble();
+        final actualWidth = widget.width > 0 ? widget.width.toDouble() : 150.0;
+        
+        // Calculate text height
+        final textStyle = TextStyle(
+          fontFamily: _layoutSettings.text1FontFamily,
+          fontSize: widget.fontSize.toDouble(),
+          color: _parseColor(_layoutSettings.text1Color),
+        );
+        final textPainter = TextPainter(
+          text: TextSpan(text: widget.label, style: textStyle),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        final actualHeight = textPainter.height + 10;
+
+        final widgetRect = Rect.fromLTWH(widgetX, widgetY, actualWidth, actualHeight);
+        
+        if (widgetRect.contains(localPosition)) {
+          setState(() {
+            _selectedWidget = widget;
+          });
+          return;
+        }
+      }
+    }
+
+    // If tap is not on a widget, deselect
+    setState(() {
+      _selectedWidget = null;
+      _dragStartOffset = null;
+      _dragStartPosition = null;
+      _draggingWidget = null;
+    });
+  }
+
+  void _handleCanvasPanStart(DragStartDetails details) {
+    if (_selectedCard == null || _selectedWidget == null) return;
+
+    final cardRect = Rect.fromLTWH(
+      (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
+      (MediaQuery.of(context).size.height - _selectedCard!.height) / 2,
+      _selectedCard!.width.toDouble(),
+      _selectedCard!.height.toDouble(),
+    );
+
+    final localPosition = details.localPosition;
+    
+    // Check if the drag started on the selected widget
+    final widget = _selectedWidget!;
+    if (widget.type == DataWidgetType.label) {
+      final widgetX = cardRect.left + widget.x.toDouble();
+      final widgetY = cardRect.top + widget.y.toDouble();
+      final actualWidth = widget.width > 0 ? widget.width.toDouble() : 150.0;
+      
+      // Calculate text height
+      final textStyle = TextStyle(
+        fontFamily: _layoutSettings.text1FontFamily,
+        fontSize: widget.fontSize.toDouble(),
+        color: _parseColor(_layoutSettings.text1Color),
+      );
+      final textPainter = TextPainter(
+        text: TextSpan(text: widget.label, style: textStyle),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      final actualHeight = textPainter.height + 10;
+
+      final widgetRect = Rect.fromLTWH(widgetX, widgetY, actualWidth, actualHeight);
+      
+      if (widgetRect.contains(localPosition)) {
+        setState(() {
+          _draggingWidget = widget;
+          _dragStartOffset = Offset(widgetX, widgetY);
+          _dragStartPosition = localPosition;
+        });
+      }
+    }
+  }
+
+  void _handleCanvasPanUpdate(DragUpdateDetails details) {
+    if (_draggingWidget == null || _dragStartOffset == null || _dragStartPosition == null) return;
+
+    final cardRect = Rect.fromLTWH(
+      (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
+      (MediaQuery.of(context).size.height - _selectedCard!.height) / 2,
+      _selectedCard!.width.toDouble(),
+      _selectedCard!.height.toDouble(),
+    );
+
+    final localPosition = details.localPosition;
+    final delta = localPosition - _dragStartPosition!;
+    
+    // Calculate new position relative to card
+    var newX = _dragStartOffset!.dx + delta.dx - cardRect.left;
+    var newY = _dragStartOffset!.dy + delta.dy - cardRect.top;
+    
+    // Clamp to card boundaries
+    newX = newX.clamp(0.0, cardRect.width - (_draggingWidget!.width > 0 ? _draggingWidget!.width.toDouble() : 150.0));
+    
+    // Calculate widget height for clamping
+    final textStyle = TextStyle(
+      fontFamily: _layoutSettings.text1FontFamily,
+      fontSize: _draggingWidget!.fontSize.toDouble(),
+      color: _parseColor(_layoutSettings.text1Color),
+    );
+    final textPainter = TextPainter(
+      text: TextSpan(text: _draggingWidget!.label, style: textStyle),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    final widgetHeight = textPainter.height + 10;
+    newY = newY.clamp(0.0, cardRect.height - widgetHeight);
+
+    setState(() {
+      _dragStartOffset = Offset(_dragStartOffset!.dx + delta.dx, _dragStartOffset!.dy + delta.dy);
+    });
+  }
+
+  void _handleCanvasPanEnd(DragEndDetails details) {
+    if (_draggingWidget == null || _dragStartOffset == null || _selectedCard == null) return;
+
+    final cardRect = Rect.fromLTWH(
+      (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
+      (MediaQuery.of(context).size.height - _selectedCard!.height) / 2,
+      _selectedCard!.width.toDouble(),
+      _selectedCard!.height.toDouble(),
+    );
+
+    // Calculate new widget position relative to card
+    final newX = (_dragStartOffset!.dx - cardRect.left).round();
+    final newY = (_dragStartOffset!.dy - cardRect.top).round();
+
+    // Update the widget position
+    final widgetIndex = _selectedCard!.dataWidgetList.indexOf(_draggingWidget!);
+    if (widgetIndex != -1) {
+      final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
+      widgets[widgetIndex] = _draggingWidget!.copyWith(x: newX, y: newY);
+      
+      setState(() {
+        final updatedCard = _selectedCard!.copyWith(dataWidgetList: widgets);
+        _cardList[_cardList.indexOf(_selectedCard!)] = updatedCard;
+        _selectedCard = updatedCard;
+        _selectedWidget = widgets[widgetIndex];
+        _draggingWidget = null;
+        _dragStartOffset = null;
+        _dragStartPosition = null;
+      });
+    } else {
+      setState(() {
+        _draggingWidget = null;
+        _dragStartOffset = null;
+        _dragStartPosition = null;
+      });
+    }
+  }
+
   void _selectWidget(DataWidget widget) {
     setState(() {
       _selectedWidget = widget;
@@ -871,15 +1086,17 @@ class _MainWindowState extends State<MainWindow> {
   }
 
   void _showWidgetContextMenu(BuildContext context, DataWidget widget, Offset globalPosition) {
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final overlay = Overlay.of(context);
+    final overlayContext = overlay.context;
+    final RenderBox overlayBox = overlayContext.findRenderObject() as RenderBox;
 
     showMenu<String>(
-      context: context,
+      context: overlayContext,
       position: RelativeRect.fromLTRB(
         globalPosition.dx,
         globalPosition.dy,
-        overlay.size.width - globalPosition.dx,
-        overlay.size.height - globalPosition.dy,
+        overlayBox.size.width - globalPosition.dx,
+        overlayBox.size.height - globalPosition.dy,
       ),
       items: <PopupMenuEntry<String>>[
         const PopupMenuItem<String>(
@@ -1026,14 +1243,26 @@ class _MainWindowState extends State<MainWindow> {
       );
     }
 
-    return Container(
-      color: const Color(0xFF808080),
-      child: CustomPaint(
-        painter: DataCardPainter(
-          card: _selectedCard!,
-          backgroundColor: _parseColor(_layoutSettings.backgroundColor),
+    return MouseRegion(
+      cursor: SystemMouseCursors.basic,
+      child: GestureDetector(
+        onTapDown: (details) => _handleCanvasTapDown(details),
+        onPanStart: (details) => _handleCanvasPanStart(details),
+        onPanUpdate: (details) => _handleCanvasPanUpdate(details),
+        onPanEnd: (details) => _handleCanvasPanEnd(details),
+        child: Container(
+          color: const Color(0xFF808080),
+          child: CustomPaint(
+            painter: DataCardPainter(
+              card: _selectedCard!,
+              backgroundColor: _parseColor(_layoutSettings.backgroundColor),
+              selectedWidget: _selectedWidget,
+              layoutSettings: _layoutSettings,
+              dragOffset: _dragStartOffset,
+            ),
+            size: Size.infinite,
+          ),
         ),
-        size: Size.infinite,
       ),
     );
   }
@@ -1294,10 +1523,16 @@ class _MainWindowState extends State<MainWindow> {
 class DataCardPainter extends CustomPainter {
   final DataCard card;
   final Color backgroundColor;
+  final DataWidget? selectedWidget;
+  final LayoutSettings layoutSettings;
+  final Offset? dragOffset;
 
   const DataCardPainter({
     required this.card,
     required this.backgroundColor,
+    this.selectedWidget,
+    required this.layoutSettings,
+    this.dragOffset,
   });
 
   @override
@@ -1337,11 +1572,143 @@ class DataCardPainter extends CustomPainter {
         cardRect.top + 4,
       ),
     );
+
+    // Draw widgets
+    for (final widget in card.dataWidgetList) {
+      _drawWidget(canvas, cardRect, widget, widget == selectedWidget);
+    }
+
+    // Draw dragging widget if present
+    if (dragOffset != null && selectedWidget != null) {
+      _drawWidget(canvas, cardRect, selectedWidget!, true, dragOffset!);
+    }
+  }
+
+  void _drawWidget(Canvas canvas, Rect cardRect, DataWidget widget, bool isSelected, [Offset? customOffset]) {
+    if (widget.type != DataWidgetType.label) return;
+
+    // Calculate widget position
+    final widgetX = customOffset?.dx ?? cardRect.left + widget.x.toDouble();
+    final widgetY = customOffset?.dy ?? cardRect.top + widget.y.toDouble();
+    
+    // For label widgets, use text1 settings
+    final textStyle = TextStyle(
+      fontFamily: layoutSettings.text1FontFamily,
+      fontSize: widget.fontSize.toDouble(),
+      fontWeight: _getFontWeight(widget.fontWeight),
+      color: _parseColor(layoutSettings.text1Color),
+    );
+
+    final textPainter = TextPainter(
+      text: TextSpan(text: widget.label, style: textStyle),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+
+    // Calculate actual width and height
+    final actualWidth = widget.width > 0 ? widget.width.toDouble() : 150.0;
+    final actualHeight = textPainter.height + 10;
+
+    final widgetRect = Rect.fromLTWH(
+      widgetX,
+      widgetY,
+      actualWidth,
+      actualHeight,
+    );
+
+    // Draw label text centered in the widget
+    final textOffset = Offset(
+      widgetX + (actualWidth - textPainter.width) / 2,
+      widgetY + (actualHeight - textPainter.height) / 2,
+    );
+    textPainter.paint(canvas, textOffset);
+
+    // Draw dashed border if selected
+    if (isSelected) {
+      final dashPaint = Paint()
+        ..color = _getContrastingColor(backgroundColor)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1;
+
+      final dashPath = Path();
+      final dashWidth = 5.0;
+      final dashSpace = 3.0;
+
+      // Draw dashed rectangle
+      final startX = widgetRect.left;
+      final startY = widgetRect.top;
+      final endX = widgetRect.right;
+      final endY = widgetRect.bottom;
+
+      // Top border
+      double x = startX;
+      while (x < endX) {
+        dashPath.moveTo(x, startY);
+        dashPath.lineTo(x + dashWidth, startY);
+        x += dashWidth + dashSpace;
+      }
+
+      // Right border
+      double y = startY;
+      while (y < endY) {
+        dashPath.moveTo(endX, y);
+        dashPath.lineTo(endX, y + dashWidth);
+        y += dashWidth + dashSpace;
+      }
+
+      // Bottom border
+      x = startX;
+      while (x < endX) {
+        dashPath.moveTo(x, endY);
+        dashPath.lineTo(x + dashWidth, endY);
+        x += dashWidth + dashSpace;
+      }
+
+      // Left border
+      y = startY;
+      while (y < endY) {
+        dashPath.moveTo(startX, y);
+        dashPath.lineTo(startX, y + dashWidth);
+        y += dashWidth + dashSpace;
+      }
+
+      canvas.drawPath(dashPath, dashPaint);
+    }
+  }
+
+  FontWeight _getFontWeight(DataWidgetFontWeight fontWeight) {
+    switch (fontWeight) {
+      case DataWidgetFontWeight.bold:
+        return FontWeight.bold;
+      case DataWidgetFontWeight.italic:
+        return FontWeight.normal;
+      case DataWidgetFontWeight.plain:
+      default:
+        return FontWeight.normal;
+    }
+  }
+
+  Color _parseColor(String hexColor) {
+    try {
+      if (hexColor.startsWith('#') && hexColor.length == 7) {
+        return Color(int.parse(hexColor.substring(1), radix: 16) | 0xFF000000);
+      }
+    } catch (e) {}
+    return Colors.black;
+  }
+
+  Color _getContrastingColor(Color background) {
+    final luminance = background.computeLuminance();
+    return luminance > 0.5 ? Colors.black : Colors.white;
   }
 
   @override
   bool shouldRepaint(DataCardPainter oldDelegate) =>
-      oldDelegate.card != card || oldDelegate.backgroundColor != backgroundColor;
+      oldDelegate.card != card ||
+      oldDelegate.backgroundColor != backgroundColor ||
+      oldDelegate.selectedWidget != selectedWidget ||
+      oldDelegate.layoutSettings != layoutSettings ||
+      oldDelegate.dragOffset != dragOffset;
 }
 
 class DrawingPainter extends CustomPainter {

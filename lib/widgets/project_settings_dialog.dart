@@ -702,6 +702,11 @@ class _ProjectSettingsDialogState extends State<ProjectSettingsDialog> {
     required VoidCallback onColorTap,
     required String propertyName,
   }) {
+    // Use the controller value to determine the button color
+    final buttonColor = colorController.text.length == 7 && colorController.text.startsWith('#')
+        ? _parseColor(colorController.text)
+        : color;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -718,7 +723,7 @@ class _ProjectSettingsDialogState extends State<ProjectSettingsDialog> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: color,
+                  color: buttonColor,
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(4),
                 ),
