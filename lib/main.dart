@@ -678,6 +678,20 @@ class _MainWindowState extends State<MainWindow> {
     }
   }
 
+
+  List<Widget> _buildWidgetPropertyWidgets(DataWidget widget) {
+    return [
+      const SizedBox(height: 16),
+      Row(children: [const Text('X: '), Text(widget.x.toString())]),
+      const SizedBox(height: 8),
+      Row(children: [const Text('Y: '), Text(widget.y.toString())]),
+      const SizedBox(height: 8),
+      Row(children: [const Text('Width: '), Text(widget.width.toString())]),
+      const SizedBox(height: 8),
+      Row(children: [const Text('Height: '), Text(widget.height.toString())]),
+    ];
+  }
+
   Future<void> _editWidget(DataWidget widget, int widgetIndex) async {
     if (_selectedCard == null) return;
 
@@ -690,11 +704,7 @@ class _MainWindowState extends State<MainWindow> {
         DataWidgetFontWeight? selectedFontWeight = widget.fontWeight;
         int? selectedFontSize = widget.fontSize;
 
-        // Build property text strings before widget tree
-        final xText = 'X: ${widget.x}';
-        final yText = 'Y: ${widget.y}';
-        final widthText = 'Width: ${widget.width}';
-        final heightText = 'Height: ${widget.height}';
+        final propertyWidgets = _buildWidgetPropertyWidgets(widget);
 
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
@@ -730,14 +740,7 @@ class _MainWindowState extends State<MainWindow> {
                         border: OutlineInputBorder(),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(xText),
-                    const SizedBox(height: 8),
-                    Text(yText),
-                    const SizedBox(height: 8),
-                    Text(widthText),
-                    const SizedBox(height: 8),
-                    Text(heightText),
+                    ...propertyWidgets,
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
