@@ -681,11 +681,6 @@ class _MainWindowState extends State<MainWindow> {
   Future<void> _editWidget(DataWidget widget, int widgetIndex) async {
     if (_selectedCard == null) return;
 
-    final widgetX = widget.x;
-    final widgetY = widget.y;
-    final widgetWidth = widget.width;
-    final widgetHeight = widget.height;
-
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext context) {
@@ -697,6 +692,10 @@ class _MainWindowState extends State<MainWindow> {
 
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
+            final widgetX = widget.x;
+            final widgetY = widget.y;
+            final widgetWidth = widget.width;
+            final widgetHeight = widget.height;
             return AlertDialog(
               title: const Text('Edit Widget'),
               content: SingleChildScrollView(
