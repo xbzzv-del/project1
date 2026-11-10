@@ -541,13 +541,13 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text('X: ${editWidget.x}'),
+                    Text('X: $x'),
                     const SizedBox(height: 8),
-                    Text('Y: ${editWidget.y}'),
+                    Text('Y: $y'),
                     const SizedBox(height: 8),
-                    Text('Width: ${editWidget.width}'),
+                    Text('Width: $width'),
                     const SizedBox(height: 8),
-                    Text('Height: ${editWidget.height}'),
+                    Text('Height: $height'),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
@@ -684,12 +684,15 @@ class _MainWindowState extends State<MainWindow> {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext context) {
-        final editWidget = widget;
-        DataWidgetType? selectedType = editWidget.type;
-        final labelController = TextEditingController(text: editWidget.label);
+        final x = widget.x;
+        final y = widget.y;
+        final width = widget.width;
+        final height = widget.height;
+        DataWidgetType? selectedType = widget.type;
+        final labelController = TextEditingController(text: widget.label);
         int? selectedFontIndex = 0;
-        DataWidgetFontWeight? selectedFontWeight = editWidget.fontWeight;
-        int? selectedFontSize = editWidget.fontSize;
+        DataWidgetFontWeight? selectedFontWeight = widget.fontWeight;
+        int? selectedFontSize = widget.fontSize;
 
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
@@ -726,13 +729,13 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text('X: ${editWidget.x}'),
+                    Text('X: $x'),
                     const SizedBox(height: 8),
-                    Text('Y: ${editWidget.y}'),
+                    Text('Y: $y'),
                     const SizedBox(height: 8),
-                    Text('Width: ${editWidget.width}'),
+                    Text('Width: $width'),
                     const SizedBox(height: 8),
-                    Text('Height: ${editWidget.height}'),
+                    Text('Height: $height'),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
