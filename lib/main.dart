@@ -541,14 +541,6 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(xText),
-                    const SizedBox(height: 8),
-                    Text(yText),
-                    const SizedBox(height: 8),
-                    Text(widthText),
-                    const SizedBox(height: 8),
-                    Text(heightText),
-                    const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
                       onChanged: (value) {
