@@ -56,6 +56,7 @@ class _MainWindowState extends State<MainWindow> {
   Offset? _dragStartOffset;
   Offset? _dragStartPosition;
   FocusNode _widgetListFocusNode = FocusNode();
+  FocusNode _rightPaneFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -73,6 +74,7 @@ class _MainWindowState extends State<MainWindow> {
   @override
   void dispose() {
     _widgetListFocusNode.dispose();
+    _rightPaneFocusNode.dispose();
     super.dispose();
   }
 
@@ -673,15 +675,134 @@ class _MainWindowState extends State<MainWindow> {
 
   List<Widget> _buildWidgetPropertyWidgets(DataWidget widget) {
     return [
-      const SizedBox(height: 16),
-      Row(children: [const Text('X: '), Text(widget.x.toString())]),
       const SizedBox(height: 8),
-      Row(children: [const Text('Y: '), Text(widget.y.toString())]),
+      Row(
+        children: [
+          const SizedBox(
+            width: 60,
+            child: Text('X:', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: TextField(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              ),
+              controller: TextEditingController(text: widget.x.toString()),
+              keyboardType: TextInputType.number,
+              onSubmitted: (value) {
+                _updateWidgetProperty(widget, 'x', int.tryParse(value) ?? widget.x);
+              },
+            ),
+          ),
+        ],
+      ),
       const SizedBox(height: 8),
-      Row(children: [const Text('Width: '), Text(widget.width.toString())]),
+      Row(
+        children: [
+          const SizedBox(
+            width: 60,
+            child: Text('Y:', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: TextField(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              ),
+              controller: TextEditingController(text: widget.y.toString()),
+              keyboardType: TextInputType.number,
+              onSubmitted: (value) {
+                _updateWidgetProperty(widget, 'y', int.tryParse(value) ?? widget.y);
+              },
+            ),
+          ),
+        ],
+      ),
       const SizedBox(height: 8),
-      Row(children: [const Text('Height: '), Text(widget.height.toString())]),
+      Row(
+        children: [
+          const SizedBox(
+            width: 60,
+            child: Text('Width:', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: TextField(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              ),
+              controller: TextEditingController(text: widget.width.toString()),
+              keyboardType: TextInputType.number,
+              onSubmitted: (value) {
+                _updateWidgetProperty(widget, 'width', int.tryParse(value) ?? widget.width);
+              },
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          const SizedBox(
+            width: 60,
+            child: Text('Height:', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: TextField(
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              ),
+              controller: TextEditingController(text: widget.height.toString()),
+              keyboardType: TextInputType.number,
+              onSubmitted: (value) {
+                _updateWidgetProperty(widget, 'height', int.tryParse(value) ?? widget.height);
+              },
+            ),
+          ),
+        ],
+      ),
     ];
+  }
+
+  void _updateWidgetProperty(DataWidget widget, String property, int value) {
+    if (_selectedCard == null || _selectedWidget == null) return;
+    
+    final widgetIndex = _selectedCard!.dataWidgetList.indexOf(widget);
+    if (widgetIndex != -1) {
+      DataWidget updatedWidget;
+      switch (property) {
+        case 'x':
+          updatedWidget = widget.copyWith(x: value);
+          break;
+        case 'y':
+          updatedWidget = widget.copyWith(y: value);
+          break;
+        case 'width':
+          updatedWidget = widget.copyWith(width: value);
+          break;
+        case 'height':
+          updatedWidget = widget.copyWith(height: value);
+          break;
+        default:
+          return;
+      }
+      
+      final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
+      widgets[widgetIndex] = updatedWidget;
+      final updatedCard = _selectedCard!.copyWith(dataWidgetList: widgets);
+      
+      setState(() {
+        _cardList[_cardList.indexOf(_selectedCard!)] = updatedCard;
+        _selectedCard = updatedCard;
+        _selectedWidget = updatedWidget;
+      });
+    }
   }
 
   Future<void> _editWidget(DataWidget widget, int widgetIndex) async {
@@ -1269,9 +1390,41 @@ class _MainWindowState extends State<MainWindow> {
   }
 
   Widget _buildRightPane() {
-    return SizedBox(
-      width: 200,
-      child: Column(
+    return Focus(
+      focusNode: _rightPaneFocusNode,
+      onKey: (node, event) {
+        if (event is RawKeyDownEvent && _selectedWidget != null && _selectedCard != null) {
+          int step = 1;
+          if (event.isControlPressed) {
+            step = 5;
+          } else if (event.isShiftPressed) {
+            step = 10;
+          }
+          
+          int newX = _selectedWidget!.x;
+          int newY = _selectedWidget!.y;
+          
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+            newX -= step;
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            newX += step;
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            newY -= step;
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            newY += step;
+          } else {
+            return KeyEventResult.ignored;
+          }
+          
+          _updateWidgetProperty(_selectedWidget!, 'x', newX);
+          _updateWidgetProperty(_selectedWidget!, 'y', newY);
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: SizedBox(
+        width: 200,
+        child: Column(
         children: [
           // Widget List - Top half
           const Padding(
