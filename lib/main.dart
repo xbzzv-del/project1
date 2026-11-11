@@ -762,8 +762,6 @@ class _MainWindowState extends State<MainWindow> {
         DataWidgetFontWeight? selectedFontWeight = widget.fontWeight;
         int? selectedFontSize = widget.fontSize;
 
-        final propertyWidgets = _buildWidgetPropertyWidgets(widget);
-
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
