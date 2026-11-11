@@ -1425,7 +1425,7 @@ class _MainWindowState extends State<MainWindow> {
       child: SizedBox(
         width: 200,
         child: Column(
-        children: [
+          children: [
           // Widget List - Top half
           const Padding(
             padding: EdgeInsets.all(8),
