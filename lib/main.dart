@@ -662,6 +662,7 @@ class _MainWindowState extends State<MainWindow> {
         type: result['type'] as DataWidgetType,
         fontSize: result['fontSize'] as int? ?? 12,
         fontWeight: result['fontWeight'] as DataWidgetFontWeight? ?? DataWidgetFontWeight.plain,
+        horTextAlign: DataWidgetHorTextAlign.left,
         x: widgetX,
         y: widgetY,
         width: widgetWidth,
@@ -739,6 +740,24 @@ class _MainWindowState extends State<MainWindow> {
         height: height,
       );
       
+      final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
+      widgets[widgetIndex] = updatedWidget;
+      final updatedCard = _selectedCard!.copyWith(dataWidgetList: widgets);
+      
+      setState(() {
+        _cardList[_cardList.indexOf(_selectedCard!)] = updatedCard;
+        _selectedCard = updatedCard;
+        _selectedWidget = updatedWidget;
+      });
+    }
+  }
+
+  void _updateWidgetHorTextAlign(DataWidgetHorTextAlign align) {
+    if (_selectedWidget == null || _selectedCard == null) return;
+    
+    final widgetIndex = _selectedCard!.dataWidgetList.indexOf(_selectedWidget!);
+    if (widgetIndex != -1) {
+      final updatedWidget = _selectedWidget!.copyWith(horTextAlign: align);
       final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
       widgets[widgetIndex] = updatedWidget;
       final updatedCard = _selectedCard!.copyWith(dataWidgetList: widgets);
@@ -1542,6 +1561,36 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                       const SizedBox(height: 8),
                       Row(
+                        children: [
+                          const SizedBox(
+                            width: 60,
+                            child: Text('Align:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                          Expanded(
+                            child: DropdownButtonFormField<DataWidgetHorTextAlign>(
+                              value: _selectedWidget?.horTextAlign ?? DataWidgetHorTextAlign.left,
+                              onChanged: (value) {
+                                if (_selectedWidget != null) {
+                                  _updateWidgetHorTextAlign(value!);
+                                }
+                              },
+                              items: DataWidgetHorTextAlign.values
+                                  .map((align) => DropdownMenuItem(
+                                        value: align,
+                                        child: Text(align.toString().split('.').last),
+                                      ))
+                                  .toList(),
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           ElevatedButton.icon(
@@ -1849,9 +1898,22 @@ class DataCardPainter extends CustomPainter {
       actualHeight,
     );
 
-    // Draw label text centered in the widget
+    // Draw label text based on horizontal alignment
+    double textX;
+    switch (widget.horTextAlign) {
+      case DataWidgetHorTextAlign.left:
+        textX = widgetX + 4;
+        break;
+      case DataWidgetHorTextAlign.center:
+        textX = widgetX + (actualWidth - textPainter.width) / 2;
+        break;
+      case DataWidgetHorTextAlign.right:
+        textX = widgetX + actualWidth - textPainter.width - 4;
+        break;
+    }
+    
     final textOffset = Offset(
-      widgetX + (actualWidth - textPainter.width) / 2,
+      textX,
       widgetY + (actualHeight - textPainter.height) / 2,
     );
     textPainter.paint(canvas, textOffset);
