@@ -1535,15 +1535,13 @@ class _MainWindowState extends State<MainWindow> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          ElevatedButton.icon(
+                          ElevatedButton(
                             onPressed: _applyWidgetProperties,
-                            icon: const Icon(Icons.check, size: 16),
-                            label: const Text('Apply'),
+                            child: const Text('Apply'),
                           ),
-                          ElevatedButton.icon(
+                          ElevatedButton(
                             onPressed: () => _editWidget(_selectedWidget!, _selectedCard!.dataWidgetList.indexOf(_selectedWidget!)),
-                            icon: const Icon(Icons.edit, size: 16),
-                            label: const Text('Edit'),
+                            child: const Text('Edit'),
                           ),
                         ],
                       ),
