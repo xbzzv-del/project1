@@ -1273,6 +1273,7 @@ class _MainWindowState extends State<MainWindow> {
       width: 200,
       child: Column(
         children: [
+          // Widget List - Top half
           const Padding(
             padding: EdgeInsets.all(8),
             child: Text(
@@ -1289,7 +1290,8 @@ class _MainWindowState extends State<MainWindow> {
             ),
           ),
           const Divider(),
-          Expanded(
+          SizedBox(
+            height: 200,
             child: Focus(
               focusNode: _widgetListFocusNode,
               onKey: (node, event) {
@@ -1312,7 +1314,7 @@ class _MainWindowState extends State<MainWindow> {
                         final widget = _selectedCard!.dataWidgetList[index];
                         return GestureDetector(
                           onTap: () => _selectWidget(widget),
-                          onDoubleTap: () => _editWidget(widget, index),
+                          onDoubleTap: () => _selectWidget(widget),
                           onSecondaryTapDown: (details) => _showWidgetContextMenu(context, widget, details.globalPosition),
                           child: ListTile(
                             title: Text(widget.label.isNotEmpty
@@ -1327,6 +1329,35 @@ class _MainWindowState extends State<MainWindow> {
                     ),
             ),
           ),
+          const Divider(height: 1),
+          // Widget Properties - Bottom half
+          const Padding(
+            padding: EdgeInsets.all(8),
+            child: Text(
+              'Widget Properties',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          _selectedWidget == null
+              ? const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text('No widget selected'),
+                )
+              : Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ..._buildWidgetPropertyWidgets(_selectedWidget!),
+                      const SizedBox(height: 8),
+                      ElevatedButton.icon(
+                        onPressed: () => _editWidget(_selectedWidget!, _selectedCard!.dataWidgetList.indexOf(_selectedWidget!)),
+                        icon: const Icon(Icons.edit, size: 16),
+                        label: const Text('Edit'),
+                      ),
+                    ],
+                  ),
+                ),
         ],
       ),
     );
