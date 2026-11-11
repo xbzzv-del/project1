@@ -57,6 +57,10 @@ class _MainWindowState extends State<MainWindow> {
   Offset? _dragStartPosition;
   FocusNode _widgetListFocusNode = FocusNode();
   FocusNode _rightPaneFocusNode = FocusNode();
+  final TextEditingController _xController = TextEditingController();
+  final TextEditingController _yController = TextEditingController();
+  final TextEditingController _widthController = TextEditingController();
+  final TextEditingController _heightController = TextEditingController();
 
   @override
   void initState() {
@@ -75,6 +79,10 @@ class _MainWindowState extends State<MainWindow> {
   void dispose() {
     _widgetListFocusNode.dispose();
     _rightPaneFocusNode.dispose();
+    _xController.dispose();
+    _yController.dispose();
+    _widthController.dispose();
+    _heightController.dispose();
     super.dispose();
   }
 
@@ -673,103 +681,6 @@ class _MainWindowState extends State<MainWindow> {
   }
 
 
-  List<Widget> _buildWidgetPropertyWidgets(DataWidget widget) {
-    return [
-      const SizedBox(height: 8),
-      Row(
-        children: [
-          const SizedBox(
-            width: 60,
-            child: Text('X:', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          Expanded(
-            child: TextField(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              ),
-              controller: TextEditingController(text: widget.x.toString()),
-              keyboardType: TextInputType.number,
-              onSubmitted: (value) {
-                _updateWidgetProperty(widget, 'x', int.tryParse(value) ?? widget.x);
-              },
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 8),
-      Row(
-        children: [
-          const SizedBox(
-            width: 60,
-            child: Text('Y:', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          Expanded(
-            child: TextField(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              ),
-              controller: TextEditingController(text: widget.y.toString()),
-              keyboardType: TextInputType.number,
-              onSubmitted: (value) {
-                _updateWidgetProperty(widget, 'y', int.tryParse(value) ?? widget.y);
-              },
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 8),
-      Row(
-        children: [
-          const SizedBox(
-            width: 60,
-            child: Text('Width:', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          Expanded(
-            child: TextField(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              ),
-              controller: TextEditingController(text: widget.width.toString()),
-              keyboardType: TextInputType.number,
-              onSubmitted: (value) {
-                _updateWidgetProperty(widget, 'width', int.tryParse(value) ?? widget.width);
-              },
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 8),
-      Row(
-        children: [
-          const SizedBox(
-            width: 60,
-            child: Text('Height:', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          Expanded(
-            child: TextField(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              ),
-              controller: TextEditingController(text: widget.height.toString()),
-              keyboardType: TextInputType.number,
-              onSubmitted: (value) {
-                _updateWidgetProperty(widget, 'height', int.tryParse(value) ?? widget.height);
-              },
-            ),
-          ),
-        ],
-      ),
-    ];
-  }
-
   void _updateWidgetProperty(DataWidget widget, String property, int value) {
     if (_selectedCard == null || _selectedWidget == null) return;
     
@@ -779,19 +690,53 @@ class _MainWindowState extends State<MainWindow> {
       switch (property) {
         case 'x':
           updatedWidget = widget.copyWith(x: value);
+          _xController.text = value.toString();
           break;
         case 'y':
           updatedWidget = widget.copyWith(y: value);
+          _yController.text = value.toString();
           break;
         case 'width':
           updatedWidget = widget.copyWith(width: value);
+          _widthController.text = value.toString();
           break;
         case 'height':
           updatedWidget = widget.copyWith(height: value);
+          _heightController.text = value.toString();
           break;
         default:
           return;
       }
+      
+      final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
+      widgets[widgetIndex] = updatedWidget;
+      final updatedCard = _selectedCard!.copyWith(dataWidgetList: widgets);
+      
+      setState(() {
+        _cardList[_cardList.indexOf(_selectedCard!)] = updatedCard;
+        _selectedCard = updatedCard;
+        _selectedWidget = updatedWidget;
+      });
+    }
+  }
+
+
+  void _applyWidgetProperties() {
+    if (_selectedWidget == null || _selectedCard == null) return;
+    
+    final x = int.tryParse(_xController.text) ?? _selectedWidget!.x;
+    final y = int.tryParse(_yController.text) ?? _selectedWidget!.y;
+    final width = int.tryParse(_widthController.text) ?? _selectedWidget!.width;
+    final height = int.tryParse(_heightController.text) ?? _selectedWidget!.height;
+    
+    final widgetIndex = _selectedCard!.dataWidgetList.indexOf(_selectedWidget!);
+    if (widgetIndex != -1) {
+      final updatedWidget = _selectedWidget!.copyWith(
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+      );
       
       final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
       widgets[widgetIndex] = updatedWidget;
@@ -1145,6 +1090,10 @@ class _MainWindowState extends State<MainWindow> {
   void _selectWidget(DataWidget widget) {
     setState(() {
       _selectedWidget = widget;
+      _xController.text = widget.x.toString();
+      _yController.text = widget.y.toString();
+      _widthController.text = widget.width.toString();
+      _heightController.text = widget.height.toString();
     });
   }
 
@@ -1501,12 +1450,105 @@ class _MainWindowState extends State<MainWindow> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ..._buildWidgetPropertyWidgets(_selectedWidget!),
                       const SizedBox(height: 8),
-                      ElevatedButton.icon(
-                        onPressed: () => _editWidget(_selectedWidget!, _selectedCard!.dataWidgetList.indexOf(_selectedWidget!)),
-                        icon: const Icon(Icons.edit, size: 16),
-                        label: const Text('Edit'),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 60,
+                            child: Text('X:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: _xController,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              ),
+                              keyboardType: TextInputType.number,
+                              onSubmitted: (value) => _applyWidgetProperties(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 60,
+                            child: Text('Y:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: _yController,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              ),
+                              keyboardType: TextInputType.number,
+                              onSubmitted: (value) => _applyWidgetProperties(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 60,
+                            child: Text('Width:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: _widthController,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              ),
+                              keyboardType: TextInputType.number,
+                              onSubmitted: (value) => _applyWidgetProperties(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 60,
+                            child: Text('Height:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: _heightController,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              ),
+                              keyboardType: TextInputType.number,
+                              onSubmitted: (value) => _applyWidgetProperties(),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: _applyWidgetProperties,
+                            icon: const Icon(Icons.check, size: 16),
+                            label: const Text('Apply'),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () => _editWidget(_selectedWidget!, _selectedCard!.dataWidgetList.indexOf(_selectedWidget!)),
+                            icon: const Icon(Icons.edit, size: 16),
+                            label: const Text('Edit'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
