@@ -796,7 +796,6 @@ class _MainWindowState extends State<MainWindow> {
                         border: OutlineInputBorder(),
                       ),
                     ),
-                    ...propertyWidgets,
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
                       value: selectedFontIndex,
