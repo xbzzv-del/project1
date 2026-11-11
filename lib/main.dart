@@ -61,6 +61,7 @@ class _MainWindowState extends State<MainWindow> {
   final TextEditingController _yController = TextEditingController();
   final TextEditingController _widthController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
+  double _rightPaneWidth = 250.0;
 
   @override
   void initState() {
@@ -1336,41 +1337,49 @@ class _MainWindowState extends State<MainWindow> {
   }
 
   Widget _buildRightPane() {
-    return Focus(
-      focusNode: _rightPaneFocusNode,
-      onKey: (node, event) {
-        if (event is RawKeyDownEvent && _selectedWidget != null && _selectedCard != null) {
-          int step = 1;
-          if (event.isControlPressed) {
-            step = 5;
-          } else if (event.isShiftPressed) {
-            step = 10;
-          }
-          
-          int newX = _selectedWidget!.x;
-          int newY = _selectedWidget!.y;
-          
-          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-            newX -= step;
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-            newX += step;
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-            newY -= step;
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-            newY += step;
-          } else {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeLeftRight,
+      child: GestureDetector(
+        onHorizontalDragUpdate: (details) {
+          setState(() {
+            _rightPaneWidth = (_rightPaneWidth + details.delta.dx).clamp(150.0, 400.0);
+          });
+        },
+        child: Focus(
+          focusNode: _rightPaneFocusNode,
+          onKey: (node, event) {
+            if (event is RawKeyDownEvent && _selectedWidget != null && _selectedCard != null) {
+              int step = 1;
+              if (event.isControlPressed) {
+                step = 5;
+              } else if (event.isShiftPressed) {
+                step = 10;
+              }
+              
+              int newX = _selectedWidget!.x;
+              int newY = _selectedWidget!.y;
+              
+              if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                newX -= step;
+              } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                newX += step;
+              } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                newY -= step;
+              } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                newY += step;
+              } else {
+                return KeyEventResult.ignored;
+              }
+              
+              _updateWidgetProperty(_selectedWidget!, 'x', newX);
+              _updateWidgetProperty(_selectedWidget!, 'y', newY);
+              return KeyEventResult.handled;
+            }
             return KeyEventResult.ignored;
-          }
-          
-          _updateWidgetProperty(_selectedWidget!, 'x', newX);
-          _updateWidgetProperty(_selectedWidget!, 'y', newY);
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: SizedBox(
-        width: 200,
-        child: Column(
+          },
+          child: SizedBox(
+            width: _rightPaneWidth,
+            child: Column(
           children: [
           // Widget List - Top half
           const Padding(
@@ -1535,13 +1544,15 @@ class _MainWindowState extends State<MainWindow> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          ElevatedButton(
+                          ElevatedButton.icon(
                             onPressed: _applyWidgetProperties,
-                            child: const Text('Apply'),
+                            icon: const Icon(Icons.check, size: 16),
+                            label: const Text('Apply'),
                           ),
-                          ElevatedButton(
+                          ElevatedButton.icon(
                             onPressed: () => _editWidget(_selectedWidget!, _selectedCard!.dataWidgetList.indexOf(_selectedWidget!)),
-                            child: const Text('Edit'),
+                            icon: const Icon(Icons.edit, size: 16),
+                            label: const Text('Edit'),
                           ),
                         ],
                       ),
