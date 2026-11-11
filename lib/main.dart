@@ -1513,7 +1513,7 @@ class _MainWindowState extends State<MainWindow> {
                 ),
         ],
       ),
-    );
+    ));
   }
 
   void _showCardProperties() {
