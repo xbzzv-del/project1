@@ -14,6 +14,12 @@ enum DataWidgetFontWeight {
   italic,
 }
 
+enum DataWidgetHorTextAlign {
+  left,
+  center,
+  right,
+}
+
 class DataWidget {
   String label;
   DataWidgetType type;
@@ -26,6 +32,7 @@ class DataWidget {
   int height;
   int fontSize;
   DataWidgetFontWeight fontWeight;
+  DataWidgetHorTextAlign horTextAlign;
 
   DataWidget({
     this.label = '',
@@ -39,6 +46,7 @@ class DataWidget {
     this.height = 50,
     this.fontSize = 12,
     this.fontWeight = DataWidgetFontWeight.plain,
+    this.horTextAlign = DataWidgetHorTextAlign.left,
   });
 
   Map<String, dynamic> toJson() => {
@@ -53,6 +61,7 @@ class DataWidget {
     'height': height,
     'font_size': fontSize,
     'font_weight': fontWeight.index,
+    'hor_text_align': horTextAlign.index,
   };
 
   factory DataWidget.fromJson(Map<String, dynamic> json) => DataWidget(
@@ -67,6 +76,7 @@ class DataWidget {
     height: json['height'] as int? ?? 50,
     fontSize: json['font_size'] as int? ?? 12,
     fontWeight: DataWidgetFontWeight.values[json['font_weight'] as int? ?? 0],
+    horTextAlign: DataWidgetHorTextAlign.values[json['hor_text_align'] as int? ?? 0],
   );
 
   DataWidget copyWith({
@@ -81,6 +91,7 @@ class DataWidget {
     int? height,
     int? fontSize,
     DataWidgetFontWeight? fontWeight,
+    DataWidgetHorTextAlign? horTextAlign,
   }) => DataWidget(
     label: label ?? this.label,
     type: type ?? this.type,
@@ -93,5 +104,6 @@ class DataWidget {
     height: height ?? this.height,
     fontSize: fontSize ?? this.fontSize,
     fontWeight: fontWeight ?? this.fontWeight,
+    horTextAlign: horTextAlign ?? this.horTextAlign,
   );
 }
