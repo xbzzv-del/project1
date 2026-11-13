@@ -977,14 +977,14 @@ class _MainWindowState extends State<MainWindow> {
     // If tap is not on a widget, deselect
     setState(() {
       _selectedWidget = null;
+      _draggingWidget = null;
       _dragStartOffset = null;
       _dragStartPosition = null;
-      _draggingWidget = null;
     });
   }
 
   void _handleCanvasPanStart(DragStartDetails details) {
-    if (_selectedCard == null || _selectedWidget == null) return;
+    if (_selectedCard == null) return;
 
     final cardRect = Rect.fromLTWH(
       (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
@@ -995,40 +995,56 @@ class _MainWindowState extends State<MainWindow> {
 
     final localPosition = details.localPosition;
     
-    // Check if the drag started on the selected widget
-    final widget = _selectedWidget!;
-    if (widget.type == DataWidgetType.label) {
-      final widgetX = cardRect.left + widget.x.toDouble();
-      final widgetY = cardRect.top + widget.y.toDouble();
-      final actualWidth = widget.width > 0 ? widget.width.toDouble() : 150.0;
-      
-      // Calculate text height
-      final textStyle = TextStyle(
-        fontFamily: _layoutSettings.text1FontFamily,
-        fontSize: widget.fontSize.toDouble(),
-        color: _parseColor(_layoutSettings.text1Color),
-      );
-      final textPainter = TextPainter(
-        text: TextSpan(text: widget.label, style: textStyle),
-        textDirection: TextDirection.ltr,
-      );
-      textPainter.layout();
-      final actualHeight = textPainter.height + 10;
+    // Check if the drag started on any widget
+    for (final widget in _selectedCard!.dataWidgetList) {
+      if (widget.type == DataWidgetType.label) {
+        final widgetX = cardRect.left + widget.x.toDouble();
+        final widgetY = cardRect.top + widget.y.toDouble();
+        final actualWidth = widget.width > 0 ? widget.width.toDouble() : 150.0;
+        
+        // Calculate text height
+        final textStyle = TextStyle(
+          fontFamily: _layoutSettings.text1FontFamily,
+          fontSize: widget.fontSize.toDouble(),
+          color: _parseColor(_layoutSettings.text1Color),
+        );
+        final textPainter = TextPainter(
+          text: TextSpan(text: widget.label, style: textStyle),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        final actualHeight = textPainter.height + 10;
 
-      final widgetRect = Rect.fromLTWH(widgetX, widgetY, actualWidth, actualHeight);
-      
-      if (widgetRect.contains(localPosition)) {
-        setState(() {
-          _draggingWidget = widget;
-          _dragStartOffset = Offset(widgetX, widgetY);
-          _dragStartPosition = localPosition;
-        });
+        final widgetRect = Rect.fromLTWH(widgetX, widgetY, actualWidth, actualHeight);
+        
+        if (widgetRect.contains(localPosition)) {
+          // Select the widget if not already selected
+          if (_selectedWidget != widget) {
+            setState(() {
+              _selectedWidget = widget;
+            });
+          }
+          
+          setState(() {
+            _draggingWidget = widget;
+            _dragStartOffset = Offset(widgetX, widgetY);
+            _dragStartPosition = localPosition;
+          });
+          return;
+        }
       }
     }
+    
+    // If drag didn't start on a widget, clear dragging state
+    setState(() {
+      _draggingWidget = null;
+      _dragStartOffset = null;
+      _dragStartPosition = null;
+    });
   }
 
   void _handleCanvasPanUpdate(DragUpdateDetails details) {
-    if (_draggingWidget == null || _dragStartOffset == null || _dragStartPosition == null) return;
+    if (_draggingWidget == null || _dragStartOffset == null || _dragStartPosition == null || _selectedCard == null) return;
 
     final cardRect = Rect.fromLTWH(
       (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
@@ -1045,7 +1061,8 @@ class _MainWindowState extends State<MainWindow> {
     var newY = _dragStartOffset!.dy + delta.dy - cardRect.top;
     
     // Clamp to card boundaries
-    newX = newX.clamp(0.0, cardRect.width - (_draggingWidget!.width > 0 ? _draggingWidget!.width.toDouble() : 150.0));
+    final actualWidth = _draggingWidget!.width > 0 ? _draggingWidget!.width.toDouble() : 150.0;
+    newX = newX.clamp(0.0, cardRect.width - actualWidth);
     
     // Calculate widget height for clamping
     final textStyle = TextStyle(
@@ -1061,9 +1078,27 @@ class _MainWindowState extends State<MainWindow> {
     final widgetHeight = textPainter.height + 10;
     newY = newY.clamp(0.0, cardRect.height - widgetHeight);
 
-    setState(() {
-      _dragStartOffset = Offset(_dragStartOffset!.dx + delta.dx, _dragStartOffset!.dy + delta.dy);
-    });
+    // Update widget position
+    final widgetIndex = _selectedCard!.dataWidgetList.indexOf(_draggingWidget!);
+    if (widgetIndex != -1) {
+      final updatedWidget = _draggingWidget!.copyWith(
+        x: newX.toInt(),
+        y: newY.toInt(),
+      );
+      
+      final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
+      widgets[widgetIndex] = updatedWidget;
+      final updatedCard = _selectedCard!.copyWith(dataWidgetList: widgets);
+      
+      setState(() {
+        _cardList[_cardList.indexOf(_selectedCard!)] = updatedCard;
+        _selectedCard = updatedCard;
+        _selectedWidget = updatedWidget;
+        _draggingWidget = updatedWidget;
+        _dragStartOffset = Offset(_dragStartOffset!.dx + delta.dx, _dragStartOffset!.dy + delta.dy);
+        _dragStartPosition = localPosition;
+      });
+    }
   }
 
   void _handleCanvasPanEnd(DragEndDetails details) {
