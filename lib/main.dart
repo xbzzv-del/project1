@@ -1912,9 +1912,9 @@ class DataCardPainter extends CustomPainter {
     );
     textPainter.layout();
 
-    // Calculate actual width and height
+    // Calculate actual width and height using widget properties
     final actualWidth = widget.width > 0 ? widget.width.toDouble() : 150.0;
-    final actualHeight = textPainter.height + 10;
+    final actualHeight = widget.height > 0 ? widget.height.toDouble() : 50.0;
 
     final widgetRect = Rect.fromLTWH(
       widgetX,
@@ -1922,6 +1922,12 @@ class DataCardPainter extends CustomPainter {
       actualWidth,
       actualHeight,
     );
+
+    // Draw background for the widget (for visibility)
+    final backgroundPaint = Paint()
+      ..color = Colors.transparent
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(widgetRect, backgroundPaint);
 
     // Draw label text based on horizontal alignment
     double textX;
@@ -1937,6 +1943,7 @@ class DataCardPainter extends CustomPainter {
         break;
     }
     
+    // Vertically center text in widget
     final textOffset = Offset(
       textX,
       widgetY + (actualHeight - textPainter.height) / 2,
