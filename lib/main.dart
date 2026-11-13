@@ -957,19 +957,7 @@ class _MainWindowState extends State<MainWindow> {
         final widgetX = cardRect.left + widget.x.toDouble();
         final widgetY = cardRect.top + widget.y.toDouble();
         final actualWidth = widget.width > 0 ? widget.width.toDouble() : 150.0;
-        
-        // Calculate text height
-        final textStyle = TextStyle(
-          fontFamily: _layoutSettings.text1FontFamily,
-          fontSize: widget.fontSize.toDouble(),
-          color: _parseColor(_layoutSettings.text1Color),
-        );
-        final textPainter = TextPainter(
-          text: TextSpan(text: widget.label, style: textStyle),
-          textDirection: TextDirection.ltr,
-        );
-        textPainter.layout();
-        final actualHeight = textPainter.height + 10;
+        final actualHeight = widget.height > 0 ? widget.height.toDouble() : 50.0;
 
         final widgetRect = Rect.fromLTWH(widgetX, widgetY, actualWidth, actualHeight);
         print('DEBUG: Widget rect: $widgetRect');
@@ -1017,19 +1005,7 @@ class _MainWindowState extends State<MainWindow> {
         final widgetX = cardRect.left + widget.x.toDouble();
         final widgetY = cardRect.top + widget.y.toDouble();
         final actualWidth = widget.width > 0 ? widget.width.toDouble() : 150.0;
-        
-        // Calculate text height
-        final textStyle = TextStyle(
-          fontFamily: _layoutSettings.text1FontFamily,
-          fontSize: widget.fontSize.toDouble(),
-          color: _parseColor(_layoutSettings.text1Color),
-        );
-        final textPainter = TextPainter(
-          text: TextSpan(text: widget.label, style: textStyle),
-          textDirection: TextDirection.ltr,
-        );
-        textPainter.layout();
-        final actualHeight = textPainter.height + 10;
+        final actualHeight = widget.height > 0 ? widget.height.toDouble() : 50.0;
 
         final widgetRect = Rect.fromLTWH(widgetX, widgetY, actualWidth, actualHeight);
         print('DEBUG: Checking widget rect: $widgetRect');
@@ -1087,21 +1063,9 @@ class _MainWindowState extends State<MainWindow> {
     
     // Clamp to card boundaries
     final actualWidth = _draggingWidget!.width > 0 ? _draggingWidget!.width.toDouble() : 150.0;
+    final actualHeight = _draggingWidget!.height > 0 ? _draggingWidget!.height.toDouble() : 50.0;
     newX = newX.clamp(0.0, cardRect.width - actualWidth);
-    
-    // Calculate widget height for clamping
-    final textStyle = TextStyle(
-      fontFamily: _layoutSettings.text1FontFamily,
-      fontSize: _draggingWidget!.fontSize.toDouble(),
-      color: _parseColor(_layoutSettings.text1Color),
-    );
-    final textPainter = TextPainter(
-      text: TextSpan(text: _draggingWidget!.label, style: textStyle),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    final widgetHeight = textPainter.height + 10;
-    newY = newY.clamp(0.0, cardRect.height - widgetHeight);
+    newY = newY.clamp(0.0, cardRect.height - actualHeight);
     print('DEBUG: New position after clamp: ($newX, $newY)');
 
     // Update widget position
