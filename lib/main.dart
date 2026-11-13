@@ -58,6 +58,7 @@ class _MainWindowState extends State<MainWindow> {
   Offset? _dragClickOffset; // Offset within widget where user clicked
   FocusNode _widgetListFocusNode = FocusNode();
   FocusNode _rightPaneFocusNode = FocusNode();
+  Size _canvasSize = Size.zero;
   final TextEditingController _xController = TextEditingController();
   final TextEditingController _yController = TextEditingController();
   final TextEditingController _widthController = TextEditingController();
@@ -934,14 +935,16 @@ class _MainWindowState extends State<MainWindow> {
 
   void _handleCanvasTapDown(TapDownDetails details) {
     print('DEBUG: _handleCanvasTapDown called');
+    print('DEBUG: Screen size: ${MediaQuery.of(context).size}');
     if (_selectedCard == null) {
       print('DEBUG: No card selected, returning');
       return;
     }
+    print('DEBUG: Card size: ${_selectedCard!.width}x${_selectedCard!.height}');
 
     final cardRect = Rect.fromLTWH(
-      (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
-      (MediaQuery.of(context).size.height - _selectedCard!.height) / 2,
+      (_canvasSize.width - _selectedCard!.width) / 2,
+      (_canvasSize.height - _selectedCard!.height) / 2,
       _selectedCard!.width.toDouble(),
       _selectedCard!.height.toDouble(),
     );
@@ -992,8 +995,8 @@ class _MainWindowState extends State<MainWindow> {
     }
 
     final cardRect = Rect.fromLTWH(
-      (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
-      (MediaQuery.of(context).size.height - _selectedCard!.height) / 2,
+      (_canvasSize.width - _selectedCard!.width) / 2,
+      (_canvasSize.height - _selectedCard!.height) / 2,
       _selectedCard!.width.toDouble(),
       _selectedCard!.height.toDouble(),
     );
@@ -1057,8 +1060,8 @@ class _MainWindowState extends State<MainWindow> {
     }
 
     final cardRect = Rect.fromLTWH(
-      (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
-      (MediaQuery.of(context).size.height - _selectedCard!.height) / 2,
+      (_canvasSize.width - _selectedCard!.width) / 2,
+      (_canvasSize.height - _selectedCard!.height) / 2,
       _selectedCard!.width.toDouble(),
       _selectedCard!.height.toDouble(),
     );
@@ -1105,8 +1108,8 @@ class _MainWindowState extends State<MainWindow> {
     if (_draggingWidget == null || _dragStartOffset == null || _selectedCard == null) return;
 
     final cardRect = Rect.fromLTWH(
-      (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
-      (MediaQuery.of(context).size.height - _selectedCard!.height) / 2,
+      (_canvasSize.width - _selectedCard!.width) / 2,
+      (_canvasSize.height - _selectedCard!.height) / 2,
       _selectedCard!.width.toDouble(),
       _selectedCard!.height.toDouble(),
     );
@@ -1373,18 +1376,24 @@ class _MainWindowState extends State<MainWindow> {
         onPanStart: (details) => _handleCanvasPanStart(details),
         onPanUpdate: (details) => _handleCanvasPanUpdate(details),
         onPanEnd: (details) => _handleCanvasPanEnd(details),
-        child: Container(
-          color: const Color(0xFF808080),
-          child: CustomPaint(
-            painter: DataCardPainter(
-              card: _selectedCard!,
-              backgroundColor: _parseColor(_layoutSettings.backgroundColor),
-              selectedWidget: _selectedWidget,
-              layoutSettings: _layoutSettings,
-              dragOffset: _dragStartOffset,
-            ),
-            size: Size.infinite,
-          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Store canvas size for hit detection
+            _canvasSize = constraints.biggest;
+            return Container(
+              color: const Color(0xFF808080),
+              child: CustomPaint(
+                painter: DataCardPainter(
+                  card: _selectedCard!,
+                  backgroundColor: _parseColor(_layoutSettings.backgroundColor),
+                  selectedWidget: _selectedWidget,
+                  layoutSettings: _layoutSettings,
+                  dragOffset: _dragStartOffset,
+                ),
+                size: Size.infinite,
+              ),
+            );
+          },
         ),
       ),
     );
