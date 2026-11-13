@@ -932,7 +932,11 @@ class _MainWindowState extends State<MainWindow> {
   }
 
   void _handleCanvasTapDown(TapDownDetails details) {
-    if (_selectedCard == null) return;
+    print('DEBUG: _handleCanvasTapDown called');
+    if (_selectedCard == null) {
+      print('DEBUG: No card selected, returning');
+      return;
+    }
 
     final cardRect = Rect.fromLTWH(
       (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
@@ -942,9 +946,13 @@ class _MainWindowState extends State<MainWindow> {
     );
 
     final localPosition = details.localPosition;
+    print('DEBUG: Tap at localPosition: $localPosition');
+    print('DEBUG: Card rect: $cardRect');
+    print('DEBUG: Number of widgets: ${_selectedCard!.dataWidgetList.length}');
     
     // Check if tap is inside any widget
     for (final widget in _selectedCard!.dataWidgetList) {
+      print('DEBUG: Checking widget: ${widget.label} at (${widget.x}, ${widget.y})');
       if (widget.type == DataWidgetType.label) {
         final widgetX = cardRect.left + widget.x.toDouble();
         final widgetY = cardRect.top + widget.y.toDouble();
@@ -964,8 +972,10 @@ class _MainWindowState extends State<MainWindow> {
         final actualHeight = textPainter.height + 10;
 
         final widgetRect = Rect.fromLTWH(widgetX, widgetY, actualWidth, actualHeight);
+        print('DEBUG: Widget rect: $widgetRect');
         
         if (widgetRect.contains(localPosition)) {
+          print('DEBUG: Tap inside widget, selecting');
           setState(() {
             _selectedWidget = widget;
           });
@@ -974,6 +984,7 @@ class _MainWindowState extends State<MainWindow> {
       }
     }
 
+    print('DEBUG: Tap not on any widget, deselecting');
     // If tap is not on a widget, deselect
     setState(() {
       _selectedWidget = null;
@@ -984,7 +995,11 @@ class _MainWindowState extends State<MainWindow> {
   }
 
   void _handleCanvasPanStart(DragStartDetails details) {
-    if (_selectedCard == null) return;
+    print('DEBUG: _handleCanvasPanStart called');
+    if (_selectedCard == null) {
+      print('DEBUG: No card selected, returning');
+      return;
+    }
 
     final cardRect = Rect.fromLTWH(
       (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
@@ -994,6 +1009,7 @@ class _MainWindowState extends State<MainWindow> {
     );
 
     final localPosition = details.localPosition;
+    print('DEBUG: Pan start at: $localPosition');
     
     // Check if the drag started on any widget
     for (final widget in _selectedCard!.dataWidgetList) {
@@ -1016,8 +1032,10 @@ class _MainWindowState extends State<MainWindow> {
         final actualHeight = textPainter.height + 10;
 
         final widgetRect = Rect.fromLTWH(widgetX, widgetY, actualWidth, actualHeight);
+        print('DEBUG: Checking widget rect: $widgetRect');
         
         if (widgetRect.contains(localPosition)) {
+          print('DEBUG: Pan start on widget, selecting and starting drag');
           // Select the widget if not already selected
           if (_selectedWidget != widget) {
             setState(() {
@@ -1035,6 +1053,7 @@ class _MainWindowState extends State<MainWindow> {
       }
     }
     
+    print('DEBUG: Pan start not on any widget, clearing drag state');
     // If drag didn't start on a widget, clear dragging state
     setState(() {
       _draggingWidget = null;
@@ -1044,7 +1063,11 @@ class _MainWindowState extends State<MainWindow> {
   }
 
   void _handleCanvasPanUpdate(DragUpdateDetails details) {
-    if (_draggingWidget == null || _dragStartOffset == null || _dragStartPosition == null || _selectedCard == null) return;
+    print('DEBUG: _handleCanvasPanUpdate called, draggingWidget: $_draggingWidget');
+    if (_draggingWidget == null || _dragStartOffset == null || _dragStartPosition == null || _selectedCard == null) {
+      print('DEBUG: Missing drag state, returning');
+      return;
+    }
 
     final cardRect = Rect.fromLTWH(
       (MediaQuery.of(context).size.width - _selectedCard!.width) / 2,
@@ -1055,10 +1078,12 @@ class _MainWindowState extends State<MainWindow> {
 
     final localPosition = details.localPosition;
     final delta = localPosition - _dragStartPosition!;
+    print('DEBUG: Delta: $delta');
     
     // Calculate new position relative to card
     var newX = _dragStartOffset!.dx + delta.dx - cardRect.left;
     var newY = _dragStartOffset!.dy + delta.dy - cardRect.top;
+    print('DEBUG: New position before clamp: ($newX, $newY)');
     
     // Clamp to card boundaries
     final actualWidth = _draggingWidget!.width > 0 ? _draggingWidget!.width.toDouble() : 150.0;
@@ -1077,6 +1102,7 @@ class _MainWindowState extends State<MainWindow> {
     textPainter.layout();
     final widgetHeight = textPainter.height + 10;
     newY = newY.clamp(0.0, cardRect.height - widgetHeight);
+    print('DEBUG: New position after clamp: ($newX, $newY)');
 
     // Update widget position
     final widgetIndex = _selectedCard!.dataWidgetList.indexOf(_draggingWidget!);
