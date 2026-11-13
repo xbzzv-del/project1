@@ -55,6 +55,7 @@ class _MainWindowState extends State<MainWindow> {
   DataWidget? _draggingWidget;
   Offset? _dragStartOffset;
   Offset? _dragStartPosition;
+  Offset? _dragClickOffset; // Offset within widget where user clicked
   FocusNode _widgetListFocusNode = FocusNode();
   FocusNode _rightPaneFocusNode = FocusNode();
   final TextEditingController _xController = TextEditingController();
@@ -979,6 +980,7 @@ class _MainWindowState extends State<MainWindow> {
       _draggingWidget = null;
       _dragStartOffset = null;
       _dragStartPosition = null;
+      _dragClickOffset = null;
     });
   }
 
@@ -1019,10 +1021,18 @@ class _MainWindowState extends State<MainWindow> {
             });
           }
           
+          // Calculate offset within widget where user clicked
+          final clickOffset = Offset(
+            localPosition.dx - widgetX,
+            localPosition.dy - widgetY,
+          );
+          print('DEBUG: Click offset within widget: $clickOffset');
+          
           setState(() {
             _draggingWidget = widget;
             _dragStartOffset = Offset(widgetX, widgetY);
             _dragStartPosition = localPosition;
+            _dragClickOffset = clickOffset;
           });
           return;
         }
@@ -1035,12 +1045,13 @@ class _MainWindowState extends State<MainWindow> {
       _draggingWidget = null;
       _dragStartOffset = null;
       _dragStartPosition = null;
+      _dragClickOffset = null;
     });
   }
 
   void _handleCanvasPanUpdate(DragUpdateDetails details) {
     print('DEBUG: _handleCanvasPanUpdate called, draggingWidget: $_draggingWidget');
-    if (_draggingWidget == null || _dragStartOffset == null || _dragStartPosition == null || _selectedCard == null) {
+    if (_draggingWidget == null || _dragStartOffset == null || _dragClickOffset == null || _selectedCard == null) {
       print('DEBUG: Missing drag state, returning');
       return;
     }
@@ -1053,12 +1064,13 @@ class _MainWindowState extends State<MainWindow> {
     );
 
     final localPosition = details.localPosition;
-    final delta = localPosition - _dragStartPosition!;
-    print('DEBUG: Delta: $delta');
+    print('DEBUG: Current mouse position: $localPosition');
+    print('DEBUG: Click offset: $_dragClickOffset');
     
-    // Calculate new position relative to card
-    var newX = _dragStartOffset!.dx + delta.dx - cardRect.left;
-    var newY = _dragStartOffset!.dy + delta.dy - cardRect.top;
+    // Calculate new widget position: mouse position - click offset within widget - card position
+    // This keeps the click point under the mouse
+    var newX = localPosition.dx - _dragClickOffset!.dx - cardRect.left;
+    var newY = localPosition.dy - _dragClickOffset!.dy - cardRect.top;
     print('DEBUG: New position before clamp: ($newX, $newY)');
     
     // Clamp to card boundaries
@@ -1085,8 +1097,6 @@ class _MainWindowState extends State<MainWindow> {
         _selectedCard = updatedCard;
         _selectedWidget = updatedWidget;
         _draggingWidget = updatedWidget;
-        _dragStartOffset = Offset(_dragStartOffset!.dx + delta.dx, _dragStartOffset!.dy + delta.dy);
-        _dragStartPosition = localPosition;
       });
     }
   }
