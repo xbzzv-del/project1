@@ -969,6 +969,10 @@ class _MainWindowState extends State<MainWindow> {
           print('DEBUG: Tap inside widget, selecting');
           setState(() {
             _selectedWidget = widget;
+            _xController.text = widget.x.toString();
+            _yController.text = widget.y.toString();
+            _widthController.text = widget.width.toString();
+            _heightController.text = widget.height.toString();
           });
           return;
         }
@@ -1019,6 +1023,10 @@ class _MainWindowState extends State<MainWindow> {
           if (_selectedWidget != widget) {
             setState(() {
               _selectedWidget = widget;
+              _xController.text = widget.x.toString();
+              _yController.text = widget.y.toString();
+              _widthController.text = widget.width.toString();
+              _heightController.text = widget.height.toString();
             });
           }
           
