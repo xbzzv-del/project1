@@ -58,6 +58,7 @@ class _MainWindowState extends State<MainWindow> {
   FocusNode _widgetListFocusNode = FocusNode();
   FocusNode _rightPaneFocusNode = FocusNode();
   Size _canvasSize = Size.zero;
+  DataWidget? _clipboardWidget; // For copy/paste
   final TextEditingController _xController = TextEditingController();
   final TextEditingController _yController = TextEditingController();
   final TextEditingController _widthController = TextEditingController();
@@ -75,6 +76,55 @@ class _MainWindowState extends State<MainWindow> {
         });
       }
     });
+  }
+
+  void _handleGlobalKeyEvent(RawKeyEvent event) {
+    if (event is RawKeyDownEvent) {
+      if (event.isControlPressed) {
+        if (event.logicalKey == LogicalKeyboardKey.keyC && _selectedWidget != null) {
+          // Copy widget to clipboard
+          _copyWidgetToClipboard();
+          return;
+        } else if (event.logicalKey == LogicalKeyboardKey.keyV && _selectedCard != null) {
+          // Paste widget from clipboard
+          _pasteWidgetFromClipboard();
+          return;
+        }
+      }
+    }
+  }
+
+  void _copyWidgetToClipboard() {
+    if (_selectedWidget == null) return;
+    setState(() {
+      _clipboardWidget = _selectedWidget!.copyWith();
+    });
+    print('DEBUG: Widget copied to clipboard');
+  }
+
+  void _pasteWidgetFromClipboard() {
+    if (_clipboardWidget == null || _selectedCard == null) return;
+    
+    // Create a new widget based on the clipboard, with a small offset
+    final newWidget = _clipboardWidget!.copyWith(
+      x: _clipboardWidget!.x + 20,
+      y: _clipboardWidget!.y + 20,
+    );
+    
+    final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
+    widgets.add(newWidget);
+    final updatedCard = _selectedCard!.copyWith(dataWidgetList: widgets);
+    
+    setState(() {
+      _cardList[_cardList.indexOf(_selectedCard!)] = updatedCard;
+      _selectedCard = updatedCard;
+      _selectedWidget = newWidget;
+      _xController.text = newWidget.x.toString();
+      _yController.text = newWidget.y.toString();
+      _widthController.text = newWidget.width.toString();
+      _heightController.text = newWidget.height.toString();
+    });
+    print('DEBUG: Widget pasted from clipboard');
   }
 
   @override
@@ -1370,6 +1420,7 @@ class _MainWindowState extends State<MainWindow> {
           },
         ),
       ),
+      ),
     );
   }
 
@@ -1713,12 +1764,16 @@ class _MainWindowState extends State<MainWindow> {
           ),
         ),
       ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return RawKeyboardListener(
+      focusNode: FocusNode(),
+      onKey: (event) => _handleGlobalKeyEvent(event),
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Drawing App'),
         actions: [
@@ -1766,6 +1821,7 @@ class _MainWindowState extends State<MainWindow> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
