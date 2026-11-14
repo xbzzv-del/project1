@@ -1050,7 +1050,7 @@ class _MainWindowState extends State<MainWindow> {
 
   void _handleCanvasPanUpdate(DragUpdateDetails details) {
     print('DEBUG: _handleCanvasPanUpdate called, draggingWidget: $_draggingWidget');
-    if (_draggingWidget == null || _dragStartOffset == null || _dragClickOffset == null || _selectedCard == null) {
+    if (_draggingWidget == null || _dragClickOffset == null || _selectedCard == null) {
       print('DEBUG: Missing drag state, returning');
       return;
     }
@@ -1101,41 +1101,12 @@ class _MainWindowState extends State<MainWindow> {
   }
 
   void _handleCanvasPanEnd(DragEndDetails details) {
-    if (_draggingWidget == null || _dragStartOffset == null || _selectedCard == null) return;
-
-    final cardRect = Rect.fromLTWH(
-      (_canvasSize.width - _selectedCard!.width) / 2,
-      (_canvasSize.height - _selectedCard!.height) / 2,
-      _selectedCard!.width.toDouble(),
-      _selectedCard!.height.toDouble(),
-    );
-
-    // Calculate new widget position relative to card
-    final newX = (_dragStartOffset!.dx - cardRect.left).round();
-    final newY = (_dragStartOffset!.dy - cardRect.top).round();
-
-    // Update the widget position
-    final widgetIndex = _selectedCard!.dataWidgetList.indexOf(_draggingWidget!);
-    if (widgetIndex != -1) {
-      final widgets = List<DataWidget>.from(_selectedCard!.dataWidgetList);
-      widgets[widgetIndex] = _draggingWidget!.copyWith(x: newX, y: newY);
-      
-      setState(() {
-        final updatedCard = _selectedCard!.copyWith(dataWidgetList: widgets);
-        _cardList[_cardList.indexOf(_selectedCard!)] = updatedCard;
-        _selectedCard = updatedCard;
-        _selectedWidget = widgets[widgetIndex];
-        _draggingWidget = null;
-        _dragStartOffset = null;
-        _dragStartPosition = null;
-      });
-    } else {
-      setState(() {
-        _draggingWidget = null;
-        _dragStartOffset = null;
-        _dragStartPosition = null;
-      });
-    }
+    // No need to update position here - it's already been updated in panUpdate
+    setState(() {
+      _draggingWidget = null;
+      _dragStartPosition = null;
+      _dragClickOffset = null;
+    });
   }
 
   void _selectWidget(DataWidget widget) {
@@ -1900,9 +1871,7 @@ class DataCardPainter extends CustomPainter {
     }
 
     // Draw dragging widget if present
-    if (dragOffset != null && selectedWidget != null) {
-      _drawWidget(canvas, cardRect, selectedWidget!, true, dragOffset!);
-    }
+    // Draw all widgets normally
   }
 
   void _drawWidget(Canvas canvas, Rect cardRect, DataWidget widget, bool isSelected) {
