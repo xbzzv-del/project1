@@ -53,7 +53,6 @@ class _MainWindowState extends State<MainWindow> {
   DataCard? _selectedCard;
   DataWidget? _selectedWidget;
   DataWidget? _draggingWidget;
-  Offset? _dragStartOffset;
   Offset? _dragStartPosition;
   Offset? _dragClickOffset; // Offset within widget where user clicked
   FocusNode _widgetListFocusNode = FocusNode();
@@ -981,7 +980,6 @@ class _MainWindowState extends State<MainWindow> {
     setState(() {
       _selectedWidget = null;
       _draggingWidget = null;
-      _dragStartOffset = null;
       _dragStartPosition = null;
       _dragClickOffset = null;
     });
@@ -1033,7 +1031,6 @@ class _MainWindowState extends State<MainWindow> {
           
           setState(() {
             _draggingWidget = widget;
-            _dragStartOffset = Offset(widgetX, widgetY);
             _dragStartPosition = localPosition;
             _dragClickOffset = clickOffset;
           });
@@ -1046,7 +1043,6 @@ class _MainWindowState extends State<MainWindow> {
     // If drag didn't start on a widget, clear dragging state
     setState(() {
       _draggingWidget = null;
-      _dragStartOffset = null;
       _dragStartPosition = null;
       _dragClickOffset = null;
     });
@@ -1388,7 +1384,6 @@ class _MainWindowState extends State<MainWindow> {
                   backgroundColor: _parseColor(_layoutSettings.backgroundColor),
                   selectedWidget: _selectedWidget,
                   layoutSettings: _layoutSettings,
-                  dragOffset: _dragStartOffset,
                 ),
                 size: Size.infinite,
               ),
@@ -1910,12 +1905,12 @@ class DataCardPainter extends CustomPainter {
     }
   }
 
-  void _drawWidget(Canvas canvas, Rect cardRect, DataWidget widget, bool isSelected, [Offset? customOffset]) {
+  void _drawWidget(Canvas canvas, Rect cardRect, DataWidget widget, bool isSelected) {
     if (widget.type != DataWidgetType.label) return;
 
     // Calculate widget position
-    final widgetX = customOffset?.dx ?? cardRect.left + widget.x.toDouble();
-    final widgetY = customOffset?.dy ?? cardRect.top + widget.y.toDouble();
+    final widgetX = cardRect.left + widget.x.toDouble();
+    final widgetY = cardRect.top + widget.y.toDouble();
     
     // For label widgets, use text1 settings
     final textStyle = TextStyle(
