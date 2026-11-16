@@ -57,6 +57,7 @@ class _MainWindowState extends State<MainWindow> {
   Offset? _dragClickOffset; // Offset within widget where user clicked
   FocusNode _widgetListFocusNode = FocusNode();
   FocusNode _rightPaneFocusNode = FocusNode();
+  FocusNode _globalKeyFocusNode = FocusNode();
   Size _canvasSize = Size.zero;
   DataWidget? _clipboardWidget; // For copy/paste
   final TextEditingController _xController = TextEditingController();
@@ -76,10 +77,16 @@ class _MainWindowState extends State<MainWindow> {
         });
       }
     });
+    
+    _globalKeyFocusNode.addListener(() {
+      print('DEBUG: Global key focus node focus changed: ${_globalKeyFocusNode.hasFocus}');
+    });
   }
 
   void _handleGlobalKeyEvent(RawKeyEvent event) {
+    print('DEBUG: Global key event received: $event');
     if (event is RawKeyDownEvent) {
+      print('DEBUG: RawKeyDownEvent: logicalKey=${event.logicalKey}, isControlPressed=${event.isControlPressed}');
       if (event.isControlPressed) {
         if (event.logicalKey == LogicalKeyboardKey.keyC && _selectedWidget != null) {
           // Copy widget to clipboard
@@ -145,6 +152,7 @@ class _MainWindowState extends State<MainWindow> {
   void dispose() {
     _widgetListFocusNode.dispose();
     _rightPaneFocusNode.dispose();
+    _globalKeyFocusNode.dispose();
     _xController.dispose();
     _yController.dispose();
     _widthController.dispose();
@@ -1783,7 +1791,8 @@ class _MainWindowState extends State<MainWindow> {
   @override
   Widget build(BuildContext context) {
     return RawKeyboardListener(
-      focusNode: FocusNode(),
+      focusNode: _globalKeyFocusNode,
+      autofocus: true,
       onKey: (event) => _handleGlobalKeyEvent(event),
       child: Scaffold(
       appBar: AppBar(
