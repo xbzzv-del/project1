@@ -83,10 +83,12 @@ class _MainWindowState extends State<MainWindow> {
       if (event.isControlPressed) {
         if (event.logicalKey == LogicalKeyboardKey.keyC && _selectedWidget != null) {
           // Copy widget to clipboard
+          print('DEBUG: Ctrl+C pressed - copying widget');
           _copyWidgetToClipboard();
           return;
         } else if (event.logicalKey == LogicalKeyboardKey.keyV && _selectedCard != null) {
           // Paste widget from clipboard
+          print('DEBUG: Ctrl+V pressed - pasting widget');
           _pasteWidgetFromClipboard();
           return;
         }
@@ -95,7 +97,11 @@ class _MainWindowState extends State<MainWindow> {
   }
 
   void _copyWidgetToClipboard() {
-    if (_selectedWidget == null) return;
+    if (_selectedWidget == null) {
+      print('DEBUG: Cannot copy - no widget selected');
+      return;
+    }
+    print('DEBUG: Copying widget: ${_selectedWidget!.label}');
     setState(() {
       _clipboardWidget = _selectedWidget!.copyWith();
     });
@@ -103,7 +109,15 @@ class _MainWindowState extends State<MainWindow> {
   }
 
   void _pasteWidgetFromClipboard() {
-    if (_clipboardWidget == null || _selectedCard == null) return;
+    if (_clipboardWidget == null) {
+      print('DEBUG: Cannot paste - clipboard is empty');
+      return;
+    }
+    if (_selectedCard == null) {
+      print('DEBUG: Cannot paste - no card selected');
+      return;
+    }
+    print('DEBUG: Pasting widget: ${_clipboardWidget!.label} to card: ${_selectedCard!.name}');
     
     // Create a new widget based on the clipboard, with a small offset
     final newWidget = _clipboardWidget!.copyWith(
@@ -1468,14 +1482,14 @@ class _MainWindowState extends State<MainWindow> {
             width: _rightPaneWidth,
             child: Column(
               children: [
-          // Widget List - Top half
-          const Padding(
-            padding: EdgeInsets.all(8),
-            child: Text(
-              'Widget List',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
+                // Widget List - Top half
+                const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text(
+                    'Widget List',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
           Padding(
             padding: const EdgeInsets.all(8),
             child: ElevatedButton.icon(
@@ -1525,20 +1539,20 @@ class _MainWindowState extends State<MainWindow> {
             ),
           ),
           const Divider(height: 1),
-          // Widget Properties - Bottom half
-          const Padding(
-            padding: EdgeInsets.all(8),
-            child: Text(
-              'Widget Properties',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          _selectedWidget == null
+                // Widget Properties - Bottom half
+                const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text(
+                    'Widget Properties',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                _selectedWidget == null
               ? const Padding(
                   padding: EdgeInsets.all(8),
                   child: Text('No widget selected'),
                 )
-              : Padding(
+                : Padding(
                   padding: const EdgeInsets.all(8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1676,8 +1690,8 @@ class _MainWindowState extends State<MainWindow> {
                     ],
                   ),
                 ),
-        ],
-      ),
+              ],
+            ),
     ))));
   }
 
