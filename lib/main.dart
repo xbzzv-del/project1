@@ -1420,7 +1420,6 @@ class _MainWindowState extends State<MainWindow> {
           },
         ),
       ),
-      ),
     );
   }
 
@@ -1763,7 +1762,6 @@ class _MainWindowState extends State<MainWindow> {
             size: Size.infinite,
           ),
         ),
-      ),
       ),
     );
   }
